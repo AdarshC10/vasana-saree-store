@@ -1,0 +1,21 @@
+{
+  "name": "vasana-saree-store",
+  "version": "1.0.0",
+  "description": "VASANA - Premium Full-Stack Saree & Ethnic Fashion E-Commerce Platform",
+  "main": "server/server.js",
+  "scripts": {
+    "install:all": "npm install && cd server && npm install && cd ../client && npm install",
+    "seed": "cd server && npm run seed",
+    "server": "cd server && npm run start",
+    "server:dev": "cd server && npm run dev",
+    "client": "cd client && npm run dev",
+    "build": "cd client && npm run build",
+    "dev": "concurrently \"npm run server:dev\" \"npm run client\""
+  },
+  "keywords": ["saree", "fashion", "e-commerce", "react", "express", "mongodb", "tailwind"],
+  "author": "VASANA Luxury Fashion",
+  "license": "MIT",
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+}
