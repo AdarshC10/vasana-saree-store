@@ -8,25 +8,27 @@ import SareeVisualizerModal from '../components/SareeVisualizerModal';
 import QuickViewModal from '../components/QuickViewModal';
 import ProductCard from '../components/ProductCard';
 import api from '../services/api';
+import { fallbackProducts } from '../utils/fallbackData';
 import { Sparkles, ArrowRight } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 export default function Home() {
-  const [featuredProducts, setFeaturedProducts] = useState([]);
-  const [newArrivals, setNewArrivals] = useState([]);
+  const [featuredProducts, setFeaturedProducts] = useState(fallbackProducts.slice(0, 4));
+  const [newArrivals, setNewArrivals] = useState(fallbackProducts.slice(4, 8));
   const [selectedQuickView, setSelectedQuickView] = useState(null);
   const [visualizerOpen, setVisualizerOpen] = useState(false);
 
   useEffect(() => {
-    // Fetch products
     api.get('/products?limit=12')
       .then((res) => {
-        const prods = res.data.products || [];
-        setFeaturedProducts(prods.slice(0, 6));
-        setNewArrivals(prods.slice(6, 12));
+        if (res.data?.products?.length) {
+          const prods = res.data.products;
+          setFeaturedProducts(prods.slice(0, 4));
+          setNewArrivals(prods.slice(4, 8));
+        }
       })
       .catch(() => {
-        // Fallback demo data if server is off
+        // Keeps fallbackProducts
       });
   }, []);
 

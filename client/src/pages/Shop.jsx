@@ -3,26 +3,23 @@ import { useSearchParams } from 'react-router-dom';
 import ProductCard from '../components/ProductCard';
 import QuickViewModal from '../components/QuickViewModal';
 import api from '../services/api';
+import { fallbackProducts } from '../utils/fallbackData';
 import { Filter, SlidersHorizontal, ChevronDown, X, RefreshCw, Search } from 'lucide-react';
 
 const categories = ['Banarasi', 'Kanjeevaram', 'Chanderi', 'Organza', 'Linen', 'Georgette', 'Tussar Silk', 'Velvet', 'Handloom Cotton'];
 const occasions = ['Wedding', 'Festive', 'Everyday', 'Party', 'Bridal', 'Formal'];
 const collections = ['Silk Stories', 'Wedding Edit', 'Festive Collection', 'Everyday Grace', 'Royalty'];
-const colors = ['Crimson Red', 'Emerald Green', 'Dusty Rose', 'Midnight Blue', 'Maroon', 'Mustard Gold', 'Ivory White', 'Sage Green', 'Deep Plum', 'Orange', 'Teal Blue', 'Pistachio Green'];
 
 export default function Shop() {
   const [searchParams, setSearchParams] = useSearchParams();
-  const [products, setProducts] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [total, setTotal] = useState(0);
-  const [page, setPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
+  const [products, setProducts] = useState(fallbackProducts);
+  const [loading, setLoading] = useState(false);
+  const [total, setTotal] = useState(fallbackProducts.length);
 
   // Filters State
   const [selectedCategory, setSelectedCategory] = useState(searchParams.get('category') || '');
   const [selectedOccasion, setSelectedOccasion] = useState(searchParams.get('occasion') || '');
   const [selectedCollection, setSelectedCollection] = useState(searchParams.get('collection') || '');
-  const [selectedColor, setSelectedColor] = useState(searchParams.get('color') || '');
   const [searchQuery, setSearchQuery] = useState(searchParams.get('search') || '');
   const [maxPrice, setMaxPrice] = useState(searchParams.get('maxPrice') || '50000');
   const [sort, setSort] = useState(searchParams.get('sort') || 'newest');
@@ -32,35 +29,51 @@ export default function Shop() {
 
   useEffect(() => {
     fetchProducts();
-  }, [searchParams, page, sort]);
+  }, [searchParams, sort]);
 
   const fetchProducts = async () => {
     setLoading(true);
     try {
       const params = new URLSearchParams();
-      params.append('page', page);
-      params.append('limit', 12);
+      params.append('limit', 20);
       params.append('sort', sort);
 
       if (selectedCategory) params.append('category', selectedCategory);
       if (selectedOccasion) params.append('occasion', selectedOccasion);
       if (selectedCollection) params.append('collection', selectedCollection);
-      if (selectedColor) params.append('color', selectedColor);
       if (searchQuery) params.append('search', searchQuery);
-      if (maxPrice && maxPrice !== '50000') params.append('maxPrice', maxPrice);
-
-      if (searchParams.get('newArrival')) params.append('newArrival', 'true');
-      if (searchParams.get('featured')) params.append('featured', 'true');
 
       const res = await api.get(`/products?${params.toString()}`);
-      setProducts(res.data.products || []);
-      setTotal(res.data.total || 0);
-      setTotalPages(res.data.pages || 1);
+      if (res.data?.products?.length) {
+        setProducts(res.data.products);
+        setTotal(res.data.total || res.data.products.length);
+      } else {
+        applyFallbackFilter();
+      }
     } catch (error) {
-      console.error(error);
+      applyFallbackFilter();
     } finally {
       setLoading(false);
     }
+  };
+
+  const applyFallbackFilter = () => {
+    let filtered = [...fallbackProducts];
+    if (selectedCategory) filtered = filtered.filter(p => p.category === selectedCategory);
+    if (selectedOccasion) filtered = filtered.filter(p => p.occasion === selectedOccasion);
+    if (selectedCollection) filtered = filtered.filter(p => p.collectionType === selectedCollection);
+    if (searchQuery) {
+      const q = searchQuery.toLowerCase();
+      filtered = filtered.filter(p => p.name.toLowerCase().includes(q) || p.category.toLowerCase().includes(q) || p.fabric.toLowerCase().includes(q));
+    }
+    if (maxPrice) filtered = filtered.filter(p => p.price <= Number(maxPrice));
+    
+    if (sort === 'price-low') filtered.sort((a,b) => a.price - b.price);
+    if (sort === 'price-high') filtered.sort((a,b) => b.price - a.price);
+    if (sort === 'rating') filtered.sort((a,b) => b.rating - a.rating);
+
+    setProducts(filtered);
+    setTotal(filtered.length);
   };
 
   const applyFilters = () => {
@@ -68,12 +81,10 @@ export default function Shop() {
     if (selectedCategory) params.set('category', selectedCategory);
     if (selectedOccasion) params.set('occasion', selectedOccasion);
     if (selectedCollection) params.set('collection', selectedCollection);
-    if (selectedColor) params.set('color', selectedColor);
     if (searchQuery) params.set('search', searchQuery);
     if (maxPrice && maxPrice !== '50000') params.set('maxPrice', maxPrice);
     if (sort) params.set('sort', sort);
     
-    setPage(1);
     setSearchParams(params);
     setMobileFilterOpen(false);
   };
@@ -82,12 +93,10 @@ export default function Shop() {
     setSelectedCategory('');
     setSelectedOccasion('');
     setSelectedCollection('');
-    setSelectedColor('');
     setSearchQuery('');
     setMaxPrice('50000');
     setSort('newest');
     setSearchParams({});
-    setPage(1);
   };
 
   return (
@@ -108,10 +117,8 @@ export default function Shop() {
           <div className="w-12 h-[2px] bg-vasana-gold mx-auto mt-4" />
         </div>
 
-        {/* Top Control Bar: Mobile Filter Button & Sort Dropdown */}
+        {/* Top Control Bar */}
         <div className="flex flex-col sm:flex-row items-center justify-between border-y border-vasana-rose/50 py-4 mb-8 gap-4">
-          
-          {/* Mobile Filter Toggle */}
           <button
             onClick={() => setMobileFilterOpen(true)}
             className="lg:hidden w-full sm:w-auto py-2.5 px-4 border border-vasana-gold text-vasana-dark text-xs font-sans font-bold tracking-widest uppercase flex items-center justify-center space-x-2"
@@ -120,9 +127,8 @@ export default function Shop() {
             <span>FILTER SAREES</span>
           </button>
 
-          {/* Active Filter Badges */}
           <div className="hidden lg:flex flex-wrap gap-2 items-center text-xs">
-            <span className="text-gray-400 uppercase font-sans font-semibold text-[10px]">Filters:</span>
+            <span className="text-gray-400 uppercase font-sans font-semibold text-[10px]">Active Filters:</span>
             {selectedCategory && (
               <span className="bg-vasana-rose/40 text-vasana-burgundy px-2.5 py-1 flex items-center space-x-1 font-sans">
                 <span>Category: {selectedCategory}</span>
@@ -136,16 +142,12 @@ export default function Shop() {
               </span>
             )}
             {(selectedCategory || selectedOccasion || searchQuery) && (
-              <button
-                onClick={clearAllFilters}
-                className="text-xs text-vasana-gold hover:underline font-sans ml-2"
-              >
+              <button onClick={clearAllFilters} className="text-xs text-vasana-gold hover:underline font-sans ml-2">
                 Clear All
               </button>
             )}
           </div>
 
-          {/* Sorting Dropdown */}
           <div className="flex items-center space-x-2 w-full sm:w-auto justify-end">
             <span className="text-xs font-sans text-gray-500 uppercase tracking-wider shrink-0">Sort By:</span>
             <select
@@ -157,7 +159,6 @@ export default function Shop() {
               <option value="price-low">Price: Low to High</option>
               <option value="price-high">Price: High to Low</option>
               <option value="rating">Customer Rating</option>
-              <option value="popularity">Most Popular</option>
             </select>
           </div>
         </div>
@@ -174,9 +175,7 @@ export default function Shop() {
 
             {/* Keyword Search */}
             <div>
-              <label className="text-xs font-sans font-bold uppercase tracking-wider text-vasana-dark block mb-2">
-                Keyword Search
-              </label>
+              <label className="text-xs font-sans font-bold uppercase tracking-wider text-vasana-dark block mb-2">Keyword Search</label>
               <div className="relative">
                 <input
                   type="text"
@@ -194,9 +193,7 @@ export default function Shop() {
 
             {/* Category */}
             <div>
-              <label className="text-xs font-sans font-bold uppercase tracking-wider text-vasana-dark block mb-2">
-                Category / Craft
-              </label>
+              <label className="text-xs font-sans font-bold uppercase tracking-wider text-vasana-dark block mb-2">Category</label>
               <div className="space-y-1.5 max-h-48 overflow-y-auto pr-2 text-xs font-sans">
                 {categories.map((cat) => (
                   <label key={cat} className="flex items-center space-x-2 cursor-pointer hover:text-vasana-burgundy">
@@ -215,9 +212,7 @@ export default function Shop() {
 
             {/* Occasion */}
             <div>
-              <label className="text-xs font-sans font-bold uppercase tracking-wider text-vasana-dark block mb-2">
-                Occasion
-              </label>
+              <label className="text-xs font-sans font-bold uppercase tracking-wider text-vasana-dark block mb-2">Occasion</label>
               <div className="space-y-1.5 text-xs font-sans">
                 {occasions.map((occ) => (
                   <label key={occ} className="flex items-center space-x-2 cursor-pointer hover:text-vasana-burgundy">
@@ -229,27 +224,6 @@ export default function Shop() {
                       className="accent-vasana-burgundy"
                     />
                     <span>{occ}</span>
-                  </label>
-                ))}
-              </div>
-            </div>
-
-            {/* Collection */}
-            <div>
-              <label className="text-xs font-sans font-bold uppercase tracking-wider text-vasana-dark block mb-2">
-                Collection
-              </label>
-              <div className="space-y-1.5 text-xs font-sans">
-                {collections.map((coll) => (
-                  <label key={coll} className="flex items-center space-x-2 cursor-pointer hover:text-vasana-burgundy">
-                    <input
-                      type="radio"
-                      name="collection"
-                      checked={selectedCollection === coll}
-                      onChange={() => setSelectedCollection(selectedCollection === coll ? '' : coll)}
-                      className="accent-vasana-burgundy"
-                    />
-                    <span>{coll}</span>
                   </label>
                 ))}
               </div>
@@ -278,67 +252,24 @@ export default function Shop() {
             >
               APPLY FILTERS
             </button>
-
           </div>
 
           {/* Product Listing Grid */}
           <div className="lg:col-span-3">
-            {loading ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
-                {[...Array(6)].map((_, i) => (
-                  <div key={i} className="aspect-[3/4] bg-gray-200 animate-pulse" />
-                ))}
-              </div>
-            ) : products.length === 0 ? (
+            {products.length === 0 ? (
               <div className="text-center py-20 bg-white border border-vasana-rose/50 p-8">
-                <h3 className="font-serif text-3xl font-light text-vasana-dark mb-2">
-                  NO SAREES FOUND
-                </h3>
-                <p className="text-xs font-sans text-gray-500 mb-6 max-w-sm mx-auto">
-                  We couldn't find any sarees matching your selected filter criteria. Try resetting filters.
-                </p>
-                <button
-                  onClick={clearAllFilters}
-                  className="px-6 py-3 bg-vasana-gold text-vasana-dark text-xs font-sans font-bold tracking-widest uppercase hover:bg-vasana-goldLight"
-                >
+                <h3 className="font-serif text-3xl font-light text-vasana-dark mb-2">NO SAREES FOUND</h3>
+                <p className="text-xs font-sans text-gray-500 mb-6 max-w-sm mx-auto">We couldn't find any sarees matching your selected filter criteria.</p>
+                <button onClick={clearAllFilters} className="px-6 py-3 bg-vasana-gold text-vasana-dark text-xs font-sans font-bold tracking-widest uppercase">
                   RESET ALL FILTERS
                 </button>
               </div>
             ) : (
-              <>
-                <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6">
-                  {products.map((prod) => (
-                    <ProductCard
-                      key={prod._id}
-                      product={prod}
-                      onQuickView={(p) => setSelectedQuickView(p)}
-                    />
-                  ))}
-                </div>
-
-                {/* Pagination Controls */}
-                {totalPages > 1 && (
-                  <div className="flex justify-center items-center space-x-3 mt-14">
-                    <button
-                      disabled={page === 1}
-                      onClick={() => setPage(page - 1)}
-                      className="px-4 py-2 border border-gray-300 text-xs disabled:opacity-40"
-                    >
-                      Previous
-                    </button>
-                    <span className="text-xs font-sans font-medium text-vasana-dark">
-                      Page {page} of {totalPages}
-                    </span>
-                    <button
-                      disabled={page === totalPages}
-                      onClick={() => setPage(page + 1)}
-                      className="px-4 py-2 border border-gray-300 text-xs disabled:opacity-40"
-                    >
-                      Next
-                    </button>
-                  </div>
-                )}
-              </>
+              <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6">
+                {products.map((prod) => (
+                  <ProductCard key={prod._id} product={prod} onQuickView={(p) => setSelectedQuickView(p)} />
+                ))}
+              </div>
             )}
           </div>
 
@@ -356,50 +287,32 @@ export default function Shop() {
               <button onClick={() => setMobileFilterOpen(false)}><X className="w-6 h-6" /></button>
             </div>
             
-            {/* Category */}
             <div>
               <label className="text-xs font-bold uppercase tracking-wider block mb-2">Category</label>
-              <select
-                value={selectedCategory}
-                onChange={(e) => setSelectedCategory(e.target.value)}
-                className="w-full p-2 bg-white border border-gray-300 text-xs"
-              >
+              <select value={selectedCategory} onChange={(e) => setSelectedCategory(e.target.value)} className="w-full p-2 bg-white border border-gray-300 text-xs">
                 <option value="">All Categories</option>
                 {categories.map((c) => <option key={c} value={c}>{c}</option>)}
               </select>
             </div>
 
-            {/* Occasion */}
             <div>
               <label className="text-xs font-bold uppercase tracking-wider block mb-2">Occasion</label>
-              <select
-                value={selectedOccasion}
-                onChange={(e) => setSelectedOccasion(e.target.value)}
-                className="w-full p-2 bg-white border border-gray-300 text-xs"
-              >
+              <select value={selectedOccasion} onChange={(e) => setSelectedOccasion(e.target.value)} className="w-full p-2 bg-white border border-gray-300 text-xs">
                 <option value="">All Occasions</option>
                 {occasions.map((o) => <option key={o} value={o}>{o}</option>)}
               </select>
             </div>
 
             <div className="flex space-x-3 pt-4">
-              <button onClick={clearAllFilters} className="flex-1 py-3 border border-gray-300 text-xs font-bold uppercase">
-                Reset
-              </button>
-              <button onClick={applyFilters} className="flex-1 py-3 bg-vasana-burgundy text-white text-xs font-bold uppercase">
-                Apply Filters
-              </button>
+              <button onClick={clearAllFilters} className="flex-1 py-3 border border-gray-300 text-xs font-bold uppercase">Reset</button>
+              <button onClick={applyFilters} className="flex-1 py-3 bg-vasana-burgundy text-white text-xs font-bold uppercase">Apply Filters</button>
             </div>
           </div>
         </div>
       )}
 
-      {/* Quick View Modal */}
       {selectedQuickView && (
-        <QuickViewModal
-          product={selectedQuickView}
-          onClose={() => setSelectedQuickView(null)}
-        />
+        <QuickViewModal product={selectedQuickView} onClose={() => setSelectedQuickView(null)} />
       )}
     </div>
   );

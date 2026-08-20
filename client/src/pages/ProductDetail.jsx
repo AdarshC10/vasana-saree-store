@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { Heart, ShoppingBag, Star, ShieldCheck, Truck, RotateCcw, Check, Share2, Sparkles } from 'lucide-react';
 import api from '../services/api';
+import { fallbackProducts } from '../utils/fallbackData';
 import { useCart } from '../context/CartContext';
 import { useWishlist } from '../context/WishlistContext';
 import { useAuth } from '../context/AuthContext';
@@ -30,12 +31,18 @@ export default function ProductDetail() {
     setLoading(true);
     try {
       const res = await api.get(`/products/${identifier}`);
-      setProduct(res.data);
+      if (res.data) setProduct(res.data);
+      else findFallback();
     } catch (error) {
-      console.error(error);
+      findFallback();
     } finally {
       setLoading(false);
     }
+  };
+
+  const findFallback = () => {
+    const found = fallbackProducts.find(p => p._id === identifier || p.slug === identifier) || fallbackProducts[0];
+    setProduct(found);
   };
 
   if (loading) {

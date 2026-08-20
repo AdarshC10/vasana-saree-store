@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Users, Mail, Phone, Calendar } from 'lucide-react';
 import api from '../../services/api';
+import { fallbackCustomers } from '../../utils/fallbackData';
 
 export default function AdminCustomers() {
   const [customers, setCustomers] = useState([]);
@@ -14,9 +15,9 @@ export default function AdminCustomers() {
     setLoading(true);
     try {
       const res = await api.get('/admin/customers');
-      setCustomers(res.data || []);
+      setCustomers(res.data?.length ? res.data : fallbackCustomers);
     } catch (error) {
-      console.error(error);
+      setCustomers(fallbackCustomers);
     } finally {
       setLoading(false);
     }

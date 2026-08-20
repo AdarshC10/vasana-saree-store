@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { Clock, Calendar, ArrowLeft } from 'lucide-react';
 import api from '../services/api';
+import { fallbackBlogs } from '../utils/fallbackData';
 
 export default function JournalDetail() {
   const { slug } = useParams();
@@ -16,12 +17,18 @@ export default function JournalDetail() {
     setLoading(true);
     try {
       const res = await api.get(`/blogs/${slug}`);
-      setBlog(res.data);
+      if (res.data) setBlog(res.data);
+      else findFallback();
     } catch (error) {
-      console.error(error);
+      findFallback();
     } finally {
       setLoading(false);
     }
+  };
+
+  const findFallback = () => {
+    const found = fallbackBlogs.find(b => b.slug === slug || b._id === slug) || fallbackBlogs[0];
+    setBlog(found);
   };
 
   if (loading) {
