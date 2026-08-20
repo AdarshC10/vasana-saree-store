@@ -4,8 +4,8 @@ import api from '../../services/api';
 import { fallbackCustomers } from '../../utils/fallbackData';
 
 export default function AdminCustomers() {
-  const [customers, setCustomers] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [customers, setCustomers] = useState(fallbackCustomers);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     fetchCustomers();
@@ -15,7 +15,11 @@ export default function AdminCustomers() {
     setLoading(true);
     try {
       const res = await api.get('/admin/customers');
-      setCustomers(res.data?.length ? res.data : fallbackCustomers);
+      if (Array.isArray(res.data) && res.data.length > 0) {
+        setCustomers(res.data);
+      } else {
+        setCustomers(fallbackCustomers);
+      }
     } catch (error) {
       setCustomers(fallbackCustomers);
     } finally {
@@ -45,13 +49,13 @@ export default function AdminCustomers() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
-              {customers.map((cust) => (
+              {Array.isArray(customers) && customers.map((cust) => (
                 <tr key={cust._id} className="hover:bg-vasana-bg/50">
                   <td className="p-3 font-bold font-serif text-sm">{cust.name}</td>
                   <td className="p-3">{cust.email}</td>
                   <td className="p-3">{cust.phone || 'N/A'}</td>
                   <td className="p-3 font-medium">{cust.addresses?.length || 1} Saved</td>
-                  <td className="p-3 text-gray-500">{new Date(cust.createdAt).toLocaleDateString()}</td>
+                  <td className="p-3 text-gray-500">{cust.createdAt ? new Date(cust.createdAt).toLocaleDateString() : '2026-01-15'}</td>
                 </tr>
               ))}
             </tbody>

@@ -6,23 +6,26 @@ import { fallbackAdminStats } from '../../utils/fallbackData';
 
 export default function AdminDashboard() {
   const [stats, setStats] = useState(fallbackAdminStats);
-  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     fetchStats();
   }, []);
 
   const fetchStats = async () => {
-    setLoading(true);
     try {
       const res = await api.get('/admin/stats');
-      if (res.data) setStats(res.data);
+      if (res.data && typeof res.data === 'object' && res.data.totalRevenue !== undefined) {
+        setStats(res.data);
+      } else {
+        setStats(fallbackAdminStats);
+      }
     } catch (error) {
       setStats(fallbackAdminStats);
-    } finally {
-      setLoading(false);
     }
   };
+
+  const recentOrders = Array.isArray(stats?.recentOrders) ? stats.recentOrders : fallbackAdminStats.recentOrders;
+  const lowStock = Array.isArray(stats?.lowStockProducts) ? stats.lowStockProducts : fallbackAdminStats.lowStockProducts;
 
   return (
     <div className="min-h-screen bg-vasana-bg pt-28 pb-20">
@@ -124,7 +127,7 @@ export default function AdminDashboard() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
-                  {stats?.recentOrders?.map((ord) => (
+                  {recentOrders.map((ord) => (
                     <tr key={ord._id} className="hover:bg-vasana-bg/50">
                       <td className="p-3 font-mono font-bold text-vasana-burgundy">{ord._id.substring(0, 10)}...</td>
                       <td className="p-3">{ord.user?.name || 'Customer'}</td>
@@ -152,7 +155,7 @@ export default function AdminDashboard() {
             </div>
 
             <div className="space-y-3 text-xs font-sans">
-              {stats?.lowStockProducts?.map((prod) => (
+              {lowStock.map((prod) => (
                 <div key={prod._id} className="flex items-center justify-between p-3 bg-red-50/50 border border-red-200">
                   <div>
                     <strong className="text-vasana-dark block line-clamp-1">{prod.name}</strong>

@@ -7,8 +7,8 @@ import { fallbackOrders } from '../../utils/fallbackData';
 const statusOptions = ['Pending', 'Confirmed', 'Processing', 'Shipped', 'Out for Delivery', 'Delivered', 'Cancelled', 'Returned'];
 
 export default function AdminOrders() {
-  const [orders, setOrders] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [orders, setOrders] = useState(fallbackOrders);
+  const [loading, setLoading] = useState(false);
   const [filterStatus, setFilterStatus] = useState('All');
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -22,7 +22,11 @@ export default function AdminOrders() {
     setLoading(true);
     try {
       const res = await api.get('/orders/admin/all');
-      setOrders(res.data?.length ? res.data : fallbackOrders);
+      if (Array.isArray(res.data) && res.data.length > 0) {
+        setOrders(res.data);
+      } else {
+        setOrders(fallbackOrders);
+      }
     } catch (error) {
       setOrders(fallbackOrders);
     } finally {
@@ -33,7 +37,7 @@ export default function AdminOrders() {
   const handleUpdateStatus = async (orderId, newStatus) => {
     try {
       await api.put(`/orders/${orderId}/status`, { status: newStatus });
-      addToast(`Order #${orderId.substring(0, 8)} status updated to "${newStatus}"`, 'success');
+      addToast(`Order status updated to "${newStatus}"`, 'success');
       fetchOrders();
     } catch (error) {
       setOrders((prev) => prev.map(o => o._id === orderId ? { ...o, status: newStatus } : o));
@@ -41,7 +45,7 @@ export default function AdminOrders() {
     }
   };
 
-  const filteredOrders = orders.filter((o) => {
+  const filteredOrders = (Array.isArray(orders) ? orders : fallbackOrders).filter((o) => {
     const matchesStatus = filterStatus === 'All' || o.status === filterStatus;
     const matchesSearch = !searchQuery || o._id.toLowerCase().includes(searchQuery.toLowerCase()) || o.user?.name?.toLowerCase().includes(searchQuery.toLowerCase());
     return matchesStatus && matchesSearch;
