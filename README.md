@@ -85,41 +85,6 @@ Dress webite/
 
 ---
 
-## ⚡ Quick Start & Setup
-
-### 1. Install Dependencies
-Run the following from the root directory to install packages for root, client, and server:
-
-```bash
-npm run install:all
-```
-
-### 2. Environment Configuration
-Create a `.env` file inside the `server/` directory:
-
-```env
-PORT=5000
-MONGO_URI=mongodb://127.0.0.1:27017/vasana_sarees
-JWT_SECRET=vasana_secret_key_luxury_fashion_2026_jwt_token_auth
-JWT_EXPIRE=30d
-CLIENT_URL=http://localhost:5173
-```
-
-### 3. Seed Database
-Populate the database with 30 realistic saree products, reviews, blog articles, and demo accounts:
-
-```bash
-npm run seed
-```
-
-### 4. Launch Development Servers
-Start both backend API server (`port 5000`) and Vite frontend (`port 5173`) simultaneously:
-
-```bash
-npm run dev
-```
-
-Visit [http://localhost:5173](http://localhost:5173) in your browser.
 
 ---
 
