@@ -34,19 +34,6 @@ VASANA is a fully functional, production-grade, responsive full-stack e-commerce
 
 ---
 
-## 🧪 Demo Credentials
-
-For instant testing and evaluation, pre-seeded demo accounts are available:
-
-| Role | Email | Password | Access Level |
-| :--- | :--- | :--- | :--- |
-| **Admin** | `admin@example.com` | `admin123` | Full Admin Dashboard & Inventory CRUD |
-| **Customer** | `customer@example.com` | `customer123` | Customer Orders, Addresses & Checkout |
-
-*Note: Convenient one-click login buttons for both demo accounts are provided directly on the `/login` page.*
-
----
-
 ## 🛠️ Technology Stack
 
 ### Frontend
@@ -107,13 +94,6 @@ Run the following from the root directory to install packages for root, client, 
 npm run install:all
 ```
 
-Or manually inside `client` and `server`:
-
-```bash
-cd server && npm install
-cd ../client && npm install
-```
-
 ### 2. Environment Configuration
 Create a `.env` file inside the `server/` directory:
 
@@ -140,30 +120,6 @@ npm run dev
 ```
 
 Visit [http://localhost:5173](http://localhost:5173) in your browser.
-
----
-
-## 📡 API Endpoints Reference
-
-### Authentication
-- `POST /api/auth/register` — Create user account
-- `POST /api/auth/login` — Login user & return JWT token
-- `GET  /api/auth/me` — Fetch current user profile
-- `PUT  /api/auth/profile` — Update name/phone/password
-- `POST /api/auth/addresses` — Add shipping address
-
-### Products
-- `GET  /api/products` — Filterable product catalogue with search, pagination, & sorting
-- `GET  /api/products/:identifier` — Fetch product by ID or slug
-- `POST /api/products` — Create new saree product (Admin only)
-- `PUT  /api/products/:id` — Edit product details (Admin only)
-- `DELETE /api/products/:id` — Delete product (Admin only)
-
-### Orders
-- `POST /api/orders` — Place new order
-- `GET  /api/orders/myorders` — Fetch logged-in user order history
-- `GET  /api/orders/admin/all` — View all store orders (Admin only)
-- `PUT  /api/orders/:id/status` — Update order status (Admin only)
 
 ---
 
