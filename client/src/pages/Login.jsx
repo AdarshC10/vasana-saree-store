@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ShieldCheck, User, ArrowRight, KeyRound } from 'lucide-react';
+import { ArrowRight } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 
@@ -9,7 +9,7 @@ export default function Login() {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const { login, loginDemoAdmin, loginDemoCustomer } = useAuth();
+  const { login } = useAuth();
   const { addToast } = useToast();
   const navigate = useNavigate();
 
@@ -29,24 +29,6 @@ export default function Login() {
     }
   };
 
-  const handleQuickAdmin = async () => {
-    setLoading(true);
-    try {
-      await loginDemoAdmin();
-      navigate('/admin');
-    } catch (error) {}
-    finally { setLoading(false); }
-  };
-
-  const handleQuickCustomer = async () => {
-    setLoading(true);
-    try {
-      await loginDemoCustomer();
-      navigate('/account');
-    } catch (error) {}
-    finally { setLoading(false); }
-  };
-
   return (
     <div className="min-h-screen bg-vasana-bg pt-28 pb-20 flex items-center justify-center">
       <div className="max-w-md w-full mx-auto px-4">
@@ -61,30 +43,6 @@ export default function Login() {
             <p className="text-xs font-sans text-gray-500">Access saved sarees, orders, and trousseau wishlists</p>
           </div>
 
-          {/* Quick Demo Login Bar */}
-          <div className="p-3 bg-vasana-rose/20 border border-vasana-rose/50 rounded-none space-y-2 text-center">
-            <span className="text-[10px] font-sans font-bold uppercase tracking-wider text-vasana-gold block">
-              ⚡ ONE-CLICK DEMO LOGIN ACCOUNTS
-            </span>
-            <div className="grid grid-cols-2 gap-2">
-              <button
-                type="button"
-                onClick={handleQuickCustomer}
-                className="py-2 px-2 bg-white border border-vasana-gold hover:bg-vasana-gold hover:text-white text-vasana-dark text-[11px] font-sans font-bold uppercase transition-colors"
-              >
-                Customer Demo
-              </button>
-              <button
-                type="button"
-                onClick={handleQuickAdmin}
-                className="py-2 px-2 bg-vasana-burgundy text-white text-[11px] font-sans font-bold uppercase hover:bg-vasana-burgundyDark transition-colors flex items-center justify-center space-x-1"
-              >
-                <ShieldCheck className="w-3.5 h-3.5 text-vasana-gold" />
-                <span>Admin Demo</span>
-              </button>
-            </div>
-          </div>
-
           <form onSubmit={handleSubmit} className="space-y-4 text-xs font-sans">
             <div>
               <label className="block text-gray-700 font-bold uppercase mb-1">Email Address *</label>
@@ -93,7 +51,7 @@ export default function Login() {
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="customer@example.com"
+                placeholder="Enter your email address"
                 className="w-full p-3 border border-gray-300 focus:border-vasana-gold focus:outline-none"
               />
             </div>
