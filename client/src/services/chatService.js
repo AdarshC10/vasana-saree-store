@@ -63,7 +63,10 @@ export const sendChatMessage = async ({ message, userId, user }) => {
  * Client-Side AI Response Engine for Vercel Standalone Preview
  */
 const computeClientFallback = ({ message, user }) => {
-  const text = message.toLowerCase().trim();
+  const rawText = message.toLowerCase().trim();
+  // Strip commas inside numbers: e.g. "5,000" -> "5000"
+  const text = rawText.replace(/(\d+),(\d+)/g, '$1$2');
+
   let replyText = "";
   let products = [];
   let showHumanSupport = false;
@@ -128,28 +131,48 @@ const computeClientFallback = ({ message, user }) => {
 
   // 5. Product Search Extraction
   let matched = [...fallbackProducts];
+  let priceFilterApplied = false;
 
-  // Price match
-  const underMatch = text.match(/(under|below|less than|within|around)\s*₹?\s*(\d+)/i) || text.match(/₹?\s*(\d+)\s*(under|below)/i);
-  if (underMatch) {
-    const maxPrice = parseInt(underMatch[1] || underMatch[2], 10);
-    matched = matched.filter(p => p.price <= maxPrice);
+  // Range match e.g. "5000 - 15000" or "15000 - 35000"
+  const rangeMatch = text.match(/₹?\s*(\d+)\s*[-to]+\s*₹?\s*(\d+)/i);
+  if (rangeMatch) {
+    const minP = parseInt(rangeMatch[1], 10);
+    const maxP = parseInt(rangeMatch[2], 10);
+    matched = matched.filter(p => p.price >= minP && p.price <= maxP);
+    priceFilterApplied = true;
+  } else {
+    // Under match e.g. "under 2000", "under 5000", "below 15000"
+    const underMatch = text.match(/(under|below|less than|within|around)\s*₹?\s*(\d+)/i) || text.match(/₹?\s*(\d+)\s*(under|below)/i);
+    if (underMatch) {
+      const maxP = parseInt(underMatch[1] || underMatch[2], 10);
+      matched = matched.filter(p => p.price <= maxP);
+      priceFilterApplied = true;
+    }
+
+    // Above match e.g. "above 35000"
+    const aboveMatch = text.match(/(above|more than|greater than)\s*₹?\s*(\d+)/i);
+    if (aboveMatch) {
+      const minP = parseInt(aboveMatch[1], 10);
+      matched = matched.filter(p => p.price >= minP);
+      priceFilterApplied = true;
+    }
   }
 
   // Category match
-  if (text.includes('banarasi')) matched = matched.filter(p => p.category === 'Banarasi');
-  else if (text.includes('kanjivaram') || text.includes('kanjeevaram')) matched = matched.filter(p => p.category === 'Kanjeevaram');
-  else if (text.includes('chanderi')) matched = matched.filter(p => p.category === 'Chanderi');
-  else if (text.includes('organza')) matched = matched.filter(p => p.category === 'Organza');
-  else if (text.includes('linen')) matched = matched.filter(p => p.category === 'Linen');
-  else if (text.includes('georgette')) matched = matched.filter(p => p.category === 'Georgette');
-  else if (text.includes('tussar')) matched = matched.filter(p => p.category === 'Tussar Silk');
-  else if (text.includes('velvet')) matched = matched.filter(p => p.category === 'Velvet');
-  else if (text.includes('kerala') || text.includes('kasavu')) matched = matched.filter(p => p.category === 'Handloom Cotton' || p.name.includes('Kasavu'));
+  let catMatch = false;
+  if (text.includes('banarasi')) { matched = matched.filter(p => p.category === 'Banarasi'); catMatch = true; }
+  else if (text.includes('kanjivaram') || text.includes('kanjeevaram')) { matched = matched.filter(p => p.category === 'Kanjeevaram'); catMatch = true; }
+  else if (text.includes('chanderi')) { matched = matched.filter(p => p.category === 'Chanderi'); catMatch = true; }
+  else if (text.includes('organza')) { matched = matched.filter(p => p.category === 'Organza'); catMatch = true; }
+  else if (text.includes('linen')) { matched = matched.filter(p => p.category === 'Linen'); catMatch = true; }
+  else if (text.includes('georgette')) { matched = matched.filter(p => p.category === 'Georgette'); catMatch = true; }
+  else if (text.includes('tussar')) { matched = matched.filter(p => p.category === 'Tussar Silk'); catMatch = true; }
+  else if (text.includes('velvet')) { matched = matched.filter(p => p.category === 'Velvet'); catMatch = true; }
+  else if (text.includes('kerala') || text.includes('kasavu')) { matched = matched.filter(p => p.category === 'Handloom Cotton' || p.name.includes('Kasavu')); catMatch = true; }
 
   // Color match
   if (text.includes('red') || text.includes('crimson') || text.includes('maroon')) matched = matched.filter(p => p.color.includes('Red') || p.color.includes('Maroon') || p.color.includes('Crimson'));
-  else if (text.includes('green') || text.includes('emerald') || text.includes('sage')) matched = matched.filter(p => p.color.includes('Green') || p.color.includes('Emerald') || p.color.includes('Sage'));
+  else if (text.includes('green') || text.includes('emerald') || text.includes('sage') || text.includes('mint')) matched = matched.filter(p => p.color.includes('Green') || p.color.includes('Emerald') || p.color.includes('Sage') || p.color.includes('Mint'));
   else if (text.includes('blue') || text.includes('midnight') || text.includes('teal')) matched = matched.filter(p => p.color.includes('Blue') || p.color.includes('Teal'));
   else if (text.includes('gold') || text.includes('mustard')) matched = matched.filter(p => p.color.includes('Gold') || p.color.includes('Mustard'));
   else if (text.includes('rose') || text.includes('pink')) matched = matched.filter(p => p.color.includes('Rose'));
@@ -159,11 +182,19 @@ const computeClientFallback = ({ message, user }) => {
   if (text.includes('wedding') || text.includes('bridal') || text.includes('bride')) matched = matched.filter(p => p.occasion === 'Wedding' || p.occasion === 'Bridal');
   else if (text.includes('festive') || text.includes('onam') || text.includes('diwali')) matched = matched.filter(p => p.occasion === 'Festive' || p.occasion === 'Wedding');
   else if (text.includes('party')) matched = matched.filter(p => p.occasion === 'Party');
-  else if (text.includes('everyday') || text.includes('office') || text.includes('casual')) matched = matched.filter(p => p.occasion === 'Everyday');
 
-  if (matched.length > 0 && (underMatch || text.includes('silk') || text.includes('saree') || text.includes('show') || text.includes('need') || text.includes('wedding') || text.includes('banarasi') || text.includes('kanjivaram') || text.includes('organza') || text.includes('kerala'))) {
+  // Fallback relaxation if category+price query yielded 0 results
+  if (matched.length === 0 && priceFilterApplied) {
+    // Show closest sarees under/within that price range across all categories
+    const rangeMatch2 = text.match(/₹?\s*(\d+)\s*[-to]+\s*₹?\s*(\d+)/i);
+    const underMatch2 = text.match(/(under|below|less than|within|around)\s*₹?\s*(\d+)/i) || text.match(/₹?\s*(\d+)\s*(under|below)/i);
+    const maxP2 = rangeMatch2 ? parseInt(rangeMatch2[2], 10) : (underMatch2 ? parseInt(underMatch2[1] || underMatch2[2], 10) : 50000);
+    matched = fallbackProducts.filter(p => p.price <= maxP2);
+  }
+
+  if (matched.length > 0) {
     return {
-      message: `Here are exquisite saree recommendations tailored for your search:`,
+      message: `Here are magnificent sarees matched to your price and style preferences:`,
       products: matched.slice(0, 4),
       intent: 'PRODUCT_SEARCH',
       timestamp: new Date().toISOString()

@@ -37,7 +37,6 @@ const fabricKnowledge = {
   }
 };
 
-// Website Policy FAQs
 const websitePolicies = {
   shipping: "We offer complimentary express insured air shipping on orders above ₹15,000 across India. Standard orders are delivered within 3-5 business days.",
   returns: "We offer a 7-day hassle-free return policy for unworn sarees with original tags and SilkMark certification intact.",
@@ -49,7 +48,9 @@ const websitePolicies = {
  * Detect Intent & Extract Query Parameters from Natural Language Message
  */
 export const detectIntent = (text) => {
-  const lower = text.toLowerCase().trim();
+  const rawText = text.toLowerCase().trim();
+  // Clean commas in numbers e.g. "5,000" -> "5000"
+  const lower = rawText.replace(/(\d+),(\d+)/g, '$1$2');
 
   // Intent 1: Human Support
   if (lower.includes('human') || lower.includes('agent') || lower.includes('support') || lower.includes('help line') || lower.includes('phone number')) {
@@ -92,10 +93,20 @@ export const detectIntent = (text) => {
   let maxPrice = null;
   let minPrice = null;
 
-  // Extract Price Constraints
-  const underMatch = lower.match(/(under|below|less than|within|around)\s*₹?\s*(\d+)/i) || lower.match(/₹?\s*(\d+)\s*(under|below)/i);
-  if (underMatch) {
-    maxPrice = parseInt(underMatch[1] || underMatch[2], 10);
+  // Extract Price Constraints (Range, Under, Above)
+  const rangeMatch = lower.match(/₹?\s*(\d+)\s*[-to]+\s*₹?\s*(\d+)/i);
+  if (rangeMatch) {
+    minPrice = parseInt(rangeMatch[1], 10);
+    maxPrice = parseInt(rangeMatch[2], 10);
+  } else {
+    const underMatch = lower.match(/(under|below|less than|within|around)\s*₹?\s*(\d+)/i) || lower.match(/₹?\s*(\d+)\s*(under|below)/i);
+    if (underMatch) {
+      maxPrice = parseInt(underMatch[1] || underMatch[2], 10);
+    }
+    const aboveMatch = lower.match(/(above|more than|greater than)\s*₹?\s*(\d+)/i);
+    if (aboveMatch) {
+      minPrice = parseInt(aboveMatch[1], 10);
+    }
   }
 
   // Extract Categories
@@ -113,17 +124,14 @@ export const detectIntent = (text) => {
   if (lower.includes('silk')) fabric = 'Silk';
   else if (lower.includes('cotton')) fabric = 'Cotton';
   else if (lower.includes('linen')) fabric = 'Linen';
-  else if (lower.includes('organza')) fabric = 'Organza';
 
   // Extract Colors
   if (lower.includes('red') || lower.includes('crimson') || lower.includes('maroon')) color = 'Red';
-  else if (lower.includes('green') || lower.includes('emerald') || lower.includes('sage') || lower.includes('pistachio')) color = 'Green';
+  else if (lower.includes('green') || lower.includes('emerald') || lower.includes('sage') || lower.includes('mint')) color = 'Green';
   else if (lower.includes('blue') || lower.includes('midnight') || lower.includes('teal')) color = 'Blue';
   else if (lower.includes('gold') || lower.includes('mustard') || lower.includes('yellow')) color = 'Gold';
   else if (lower.includes('pink') || lower.includes('rose') || lower.includes('peach')) color = 'Rose';
   else if (lower.includes('white') || lower.includes('ivory') || lower.includes('cream')) color = 'White';
-  else if (lower.includes('purple') || lower.includes('plum') || lower.includes('lavender')) color = 'Plum';
-  else if (lower.includes('orange')) color = 'Orange';
 
   // Extract Occasions
   if (lower.includes('wedding') || lower.includes('bride') || lower.includes('bridal') || lower.includes('marriage')) occasion = 'Wedding';
@@ -131,7 +139,7 @@ export const detectIntent = (text) => {
   else if (lower.includes('party') || lower.includes('reception') || lower.includes('evening')) occasion = 'Party';
   else if (lower.includes('everyday') || lower.includes('casual') || lower.includes('office')) occasion = 'Everyday';
 
-  if (category || fabric || color || occasion || maxPrice) {
+  if (category || fabric || color || occasion || maxPrice || minPrice) {
     return {
       intent: 'PRODUCT_SEARCH',
       filters: { category, fabric, color, occasion, maxPrice, minPrice }
@@ -148,30 +156,27 @@ export const searchProductsInDB = async (filters) => {
   try {
     let query = {};
 
-    if (filters.category) {
-      query.category = { $regex: filters.category, $options: 'i' };
-    }
-    if (filters.fabric) {
-      query.fabric = { $regex: filters.fabric, $options: 'i' };
-    }
-    if (filters.color) {
-      query.color = { $regex: filters.color, $options: 'i' };
-    }
-    if (filters.occasion) {
-      query.occasion = { $regex: filters.occasion, $options: 'i' };
-    }
-    if (filters.maxPrice) {
+    if (filters.category) query.category = { $regex: filters.category, $options: 'i' };
+    if (filters.fabric) query.fabric = { $regex: filters.fabric, $options: 'i' };
+    if (filters.color) query.color = { $regex: filters.color, $options: 'i' };
+    if (filters.occasion) query.occasion = { $regex: filters.occasion, $options: 'i' };
+
+    if (filters.minPrice !== null && filters.maxPrice !== null) {
+      query.price = { $gte: filters.minPrice, $lte: filters.maxPrice };
+    } else if (filters.maxPrice !== null) {
       query.price = { $lte: filters.maxPrice };
+    } else if (filters.minPrice !== null) {
+      query.price = { $gte: filters.minPrice };
     }
 
     let products = await Product.find(query).sort({ rating: -1, reviewCount: -1 }).limit(6);
 
-    // Fallback relaxation if no strict matches
-    if (products.length === 0 && (filters.category || filters.occasion)) {
-      let relaxedQuery = {};
-      if (filters.category) relaxedQuery.category = { $regex: filters.category, $options: 'i' };
-      if (filters.occasion) relaxedQuery.occasion = { $regex: filters.occasion, $options: 'i' };
-      products = await Product.find(relaxedQuery).limit(4);
+    // Fallback relaxation if zero results
+    if (products.length === 0 && (filters.maxPrice || filters.minPrice)) {
+      let priceOnlyQuery = {};
+      if (filters.maxPrice) priceOnlyQuery.price = { $lte: filters.maxPrice };
+      if (filters.minPrice) priceOnlyQuery.price = { $gte: filters.minPrice };
+      products = await Product.find(priceOnlyQuery).limit(4);
     }
 
     return products;

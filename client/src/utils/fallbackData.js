@@ -1,5 +1,55 @@
 export const fallbackProducts = [
   {
+    _id: 'prod_kerala_1',
+    name: "Authentic Kerala Kasavu Cotton Saree",
+    slug: "authentic-kerala-kasavu-cotton-saree",
+    description: "Traditional 100% pure handloom cotton Kasavu saree from Balaramapuram with fine golden tissue kasavu borders. Perfect for Onam, Vishu, and temple rituals.",
+    price: 1890,
+    discount: 10,
+    category: "Handloom Cotton",
+    fabric: "Pure Cotton",
+    color: "Off-White & Gold",
+    occasion: "Festive",
+    collectionType: "Everyday Grace",
+    images: [
+      "https://images.unsplash.com/photo-1617627143750-d86bc21e42bb?auto=format&fit=crop&w=1000&q=80",
+      "https://images.unsplash.com/photo-1583391733956-6c78276477e2?auto=format&fit=crop&w=1000&q=80"
+    ],
+    stock: 25,
+    sku: "VSN-KAS-001",
+    sareeLength: "5.5 meters",
+    blouseLength: "0.8 meters unstitched",
+    rating: 4.8,
+    reviewCount: 32,
+    featured: true,
+    newArrival: true
+  },
+  {
+    _id: 'prod_chanderi_light',
+    name: "Pastel Mint Chanderi Semi-Silk Saree",
+    slug: "pastel-mint-chanderi-semi-silk-saree",
+    description: "Lightweight breathable Chanderi saree adorned with subtle zari booti weaves and golden pallu. Elegant choice for simple gatherings and summer events.",
+    price: 4500,
+    discount: 10,
+    category: "Chanderi",
+    fabric: "Chanderi Silk Mix",
+    color: "Mint Green",
+    occasion: "Everyday",
+    collectionType: "Everyday Grace",
+    images: [
+      "https://images.unsplash.com/photo-1583391733956-6c78276477e2?auto=format&fit=crop&w=1000&q=80",
+      "https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&w=1000&q=80"
+    ],
+    stock: 18,
+    sku: "VSN-CND-009",
+    sareeLength: "5.5 meters",
+    blouseLength: "0.8 meters unstitched",
+    rating: 4.7,
+    reviewCount: 19,
+    featured: false,
+    newArrival: true
+  },
+  {
     _id: 'prod_1',
     name: "Royal Crimson Kanjivaram Pure Silk Saree",
     slug: "royal-crimson-kanjivaram-pure-silk-saree",
@@ -229,23 +279,6 @@ export const fallbackOrders = [
     totalAmount: 24225,
     status: 'Processing',
     createdAt: new Date(Date.now() - 86400000).toISOString()
-  },
-  {
-    _id: 'VSN-9988112',
-    user: { name: 'Meera Kapoor', email: 'meera@example.com' },
-    items: [
-      {
-        name: 'Maroon Velvet Embroidered Heritage Saree',
-        image: 'https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&w=400&q=80',
-        price: 36960,
-        quantity: 1
-      }
-    ],
-    shippingAddress: { city: 'New Delhi', state: 'Delhi' },
-    payment: { method: 'Cards' },
-    totalAmount: 36960,
-    status: 'Confirmed',
-    createdAt: new Date(Date.now() - 172800000).toISOString()
   }
 ];
 
@@ -259,26 +292,6 @@ export const fallbackCustomers = [
       { city: 'Bengaluru', state: 'Karnataka' }
     ],
     createdAt: new Date('2026-01-15').toISOString()
-  },
-  {
-    _id: 'cust_2',
-    name: 'Ananya Sharma',
-    email: 'ananya@example.com',
-    phone: '+91 9876543210',
-    addresses: [
-      { city: 'Mumbai', state: 'Maharashtra' }
-    ],
-    createdAt: new Date('2026-02-01').toISOString()
-  },
-  {
-    _id: 'cust_3',
-    name: 'Meera Kapoor',
-    email: 'meera@example.com',
-    phone: '+91 9988776655',
-    addresses: [
-      { city: 'New Delhi', state: 'Delhi' }
-    ],
-    createdAt: new Date('2026-02-14').toISOString()
   }
 ];
 
@@ -289,8 +302,7 @@ export const fallbackAdminStats = {
   totalProducts: 30,
   pendingOrders: 3,
   lowStockProducts: [
-    { _id: 'prod_5', name: 'Maroon Velvet Embroidered Heritage Saree', category: 'Velvet', stock: 4 },
-    { _id: 'prod_3', name: 'Subtle Rose Organza Saree with Hand Embroidery', category: 'Organza', stock: 6 }
+    { _id: 'prod_5', name: 'Maroon Velvet Embroidered Heritage Saree', category: 'Velvet', stock: 4 }
   ],
   recentOrders: fallbackOrders
 };
@@ -300,22 +312,11 @@ export const fallbackBlogs = [
     _id: 'blog_1',
     title: "The Timeless Elegance of Kanjivaram: History, Craft & Draping",
     slug: "the-timeless-elegance-of-kanjivaram-history-craft-draping",
-    excerpt: "Discover the centuries-old story behind Kanchipuram silk sarees, from mulberry silk harvesting to master Korvai loom weaving.",
-    content: "<p>Kanjivaram silk sarees represent the pinnacle of South Indian weaving heritage. Originating from the temple town of Kanchipuram in Tamil Nadu, these sarees are revered for their heavy mulberry silk texture, lustrous gold zari, and remarkable durability.</p>",
+    excerpt: "Discover the centuries-old story behind Kanchipuram silk sarees.",
+    content: "<p>Kanjivaram silk sarees represent the pinnacle of South Indian weaving heritage.</p>",
     coverImage: "https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&w=1000&q=80",
     category: "Craft & Culture",
     author: "Ananya Sharma",
     readTime: "5 min read"
-  },
-  {
-    _id: 'blog_2',
-    title: "5 Essential Care Tips to Preserve Heirloom Silk Sarees",
-    slug: "5-essential-care-tips-to-preserve-heirloom-silk-sarees",
-    excerpt: "How to properly fold, store, and preserve your precious Banarasi and Kanjivaram silk sarees for generations to come.",
-    content: "<p>Pure silk sarees are not just garments; they are heirloom treasures passed down from mothers to daughters. Always wrap them in unbleached white cotton or muslin fabric.</p>",
-    coverImage: "https://images.unsplash.com/photo-1617627143750-d86bc21e42bb?auto=format&fit=crop&w=1000&q=80",
-    category: "Saree Care",
-    author: "Rajesh Varma",
-    readTime: "4 min read"
   }
 ];
