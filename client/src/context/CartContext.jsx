@@ -16,7 +16,17 @@ export const CartProvider = ({ children }) => {
     localStorage.setItem('vasana_cart', JSON.stringify(cart));
   }, [cart]);
 
-  const addToCart = (product, quantity = 1, blouseOption = 'Unstitched Standard') => {
+  const addToCart = (product, quantity = 1, blouseOption = 'Unstitched Standard', customUnitPrice = null) => {
+    // Calculate extra fee for blouse tailoring option (+1,490 for Custom Tailored)
+    const extraFee = (blouseOption && (blouseOption.includes('1,490') || blouseOption.includes('Custom'))) ? 1490 : 0;
+    
+    // Base unit price of saree
+    const baseUnitPrice = product.discount 
+      ? Math.round((product.originalPrice || product.price) * (1 - product.discount / 100))
+      : product.price;
+
+    const itemPrice = customUnitPrice !== null ? customUnitPrice : (baseUnitPrice + extraFee);
+
     setCart((prevCart) => {
       const existingIndex = prevCart.findIndex(
         (item) => item.product._id === product._id && item.blouseOption === blouseOption
@@ -25,6 +35,7 @@ export const CartProvider = ({ children }) => {
       if (existingIndex > -1) {
         const updated = [...prevCart];
         updated[existingIndex].quantity += quantity;
+        updated[existingIndex].price = itemPrice;
         return updated;
       } else {
         return [
@@ -33,13 +44,13 @@ export const CartProvider = ({ children }) => {
             product,
             quantity,
             blouseOption,
-            price: product.discount ? product.price * (1 - product.discount / 100) : product.price
+            price: itemPrice
           }
         ];
       }
     });
 
-    addToast(`Added "${product.name}" to your bag.`, 'success');
+    addToast(`Added ${quantity}x "${product.name}" (${blouseOption}) to your shopping bag!`, 'success');
   };
 
   const removeFromCart = (productId, blouseOption) => {
