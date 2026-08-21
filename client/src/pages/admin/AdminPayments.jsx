@@ -1,8 +1,46 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { CreditCard, CheckCircle2, DollarSign, Download, ArrowUpRight } from 'lucide-react';
 import AdminLayout from '../../components/admin/AdminLayout';
+import { useToast } from '../../context/ToastContext';
+import { downloadCSV } from '../../utils/excelExport';
+
+const defaultTransactions = [
+  { id: 'TXN-984210', orderId: 'VSN-784920', method: 'Razorpay (Cards)', amount: '₹31,499', fee: '₹630 (2%)', status: 'Settled', date: '20 Aug 2024, 14:32' },
+  { id: 'TXN-854219', orderId: 'VSN-658421', method: 'UPI (GPay)', amount: '₹24,225', fee: '₹0 (0%)', status: 'Settled', date: '20 Aug 2024, 11:15' },
+  { id: 'TXN-751248', orderId: 'VSN-452810', method: 'COD (Cash)', amount: '₹18,750', fee: '₹150 (COD Fee)', status: 'Pending Clearance', date: '19 Aug 2024, 18:40' },
+  { id: 'TXN-652391', orderId: 'VSN-321654', method: 'NetBanking (HDFC)', amount: '₹14,999', fee: '₹299 (2%)', status: 'Settled', date: '19 Aug 2024, 09:20' },
+  { id: 'TXN-541289', orderId: 'VSN-123987', method: 'Razorpay (Cards)', amount: '₹22,100', fee: '₹442 (2%)', status: 'Settled', date: '18 Aug 2024, 16:50' }
+];
 
 export default function AdminPayments() {
+  const [transactions, setTransactions] = useState(defaultTransactions);
+  const { addToast } = useToast();
+
+  useEffect(() => {
+    try {
+      const savedOrders = JSON.parse(localStorage.getItem('vasana_orders') || '[]');
+      if (savedOrders.length > 0) {
+        const liveTxns = savedOrders.map(o => ({
+          id: 'TXN-' + Math.floor(100000 + Math.random() * 900000),
+          orderId: o._id || o.id,
+          method: o.payment?.method ? `${o.payment.method} Gateway` : 'Razorpay (Cards)',
+          amount: typeof o.totalAmount === 'number' ? `₹${o.totalAmount.toLocaleString('en-IN')}` : (o.total || '₹0'),
+          fee: '₹0 (Demo)',
+          status: o.payment?.method === 'COD' ? 'Pending Clearance' : 'Settled',
+          date: o.createdAt ? new Date(o.createdAt).toLocaleString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'Today'
+        }));
+        setTransactions([...liveTxns, ...defaultTransactions]);
+      }
+    } catch(e) {}
+  }, []);
+
+  const handleExport = () => {
+    const headers = ['Transaction ID', 'Order ID', 'Payment Gateway', 'Amount (INR)', 'Fee / GST', 'Status', 'Date'];
+    const rows = transactions.map(t => [t.id, t.orderId, t.method, t.amount, t.fee, t.status, t.date]);
+    downloadCSV('VASANA_Payments_Statement', headers, rows);
+    addToast('Downloaded Payments & Payout statement (CSV)', 'success');
+  };
+
   return (
     <AdminLayout>
       <div className="space-y-6 text-[#292522]">
@@ -10,11 +48,12 @@ export default function AdminPayments() {
         <div className="flex justify-between items-center border-b border-[#EFE7DC] pb-4">
           <div>
             <h1 className="font-serif text-3xl font-light text-[#1F1A17]">Payments & Settlements</h1>
-            <p className="text-xs font-sans text-gray-500">Track Razorpay, UPI, COD payouts, and gateway transaction logs</p>
+            <p className="text-xs font-sans text-gray-500">Track Razorpay, UPI, NetBanking, COD payouts, and transaction logs</p>
           </div>
 
-          <button className="px-4 py-2 bg-[#B8924A] text-[#1F1A17] text-xs font-sans font-bold uppercase tracking-wider rounded-lg shadow-sm">
-            Export Payout Statement
+          <button onClick={handleExport} className="px-4 py-2 bg-[#B8924A] hover:bg-[#D4B26A] text-[#1F1A17] text-xs font-sans font-bold uppercase tracking-wider rounded-lg shadow-sm flex items-center space-x-2 transition-all">
+            <Download className="w-4 h-4 text-[#1F1A17]" />
+            <span>Export Payout Statement</span>
           </button>
         </div>
 
@@ -59,26 +98,21 @@ export default function AdminPayments() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#EFE7DC]">
-                {[
-                  { tx: 'TXN-904812', ord: 'VSN-784920', method: 'Razorpay Cards', amt: 31499, fee: 629, status: 'Settled', date: '20 Aug 2024' },
-                  { tx: 'TXN-904813', ord: 'VSN-658421', method: 'Google Pay UPI', amt: 24225, fee: 0, status: 'Settled', date: '20 Aug 2024' },
-                  { tx: 'TXN-904814', ord: 'VSN-452810', method: 'Cash on Delivery', amt: 18750, fee: 150, status: 'Pending Delivery', date: '19 Aug 2024' },
-                  { tx: 'TXN-904815', ord: 'VSN-321654', method: 'NetBanking (HDFC)', amt: 14999, fee: 299, status: 'Settled', date: '19 Aug 2024' }
-                ].map((row) => (
-                  <tr key={row.tx} className="hover:bg-[#FAF6F0]/50 transition-colors">
-                    <td className="p-4 font-mono font-bold text-[#B8924A]">{row.tx}</td>
-                    <td className="p-4 font-mono">{row.ord}</td>
-                    <td className="p-4 font-semibold">{row.method}</td>
-                    <td className="p-4 font-bold text-[#1F1A17]">₹{row.amt.toLocaleString('en-IN')}</td>
-                    <td className="p-4 text-gray-500">₹{row.fee}</td>
+                {transactions.map((txn) => (
+                  <tr key={txn.id} className="hover:bg-[#FAF6F0]/50 transition-colors">
+                    <td className="p-4 font-mono font-bold text-[#B8924A]">{txn.id}</td>
+                    <td className="p-4 font-mono text-gray-700">{txn.orderId}</td>
+                    <td className="p-4 font-semibold text-[#1F1A17]">{txn.method}</td>
+                    <td className="p-4 font-bold text-[#1F1A17]">{txn.amount}</td>
+                    <td className="p-4 text-gray-500">{txn.fee}</td>
                     <td className="p-4">
-                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded uppercase ${
-                        row.status === 'Settled' ? 'bg-green-100 text-green-800' : 'bg-orange-100 text-orange-800'
+                      <span className={`text-[10px] font-bold px-2.5 py-1 rounded-full uppercase border ${
+                        txn.status === 'Settled' ? 'bg-green-100 text-green-800 border-green-200' : 'bg-orange-100 text-orange-800 border-orange-200'
                       }`}>
-                        {row.status}
+                        {txn.status}
                       </span>
                     </td>
-                    <td className="p-4 text-gray-500">{row.date}</td>
+                    <td className="p-4 text-gray-500">{txn.date}</td>
                   </tr>
                 ))}
               </tbody>
