@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
   DollarSign,
@@ -22,8 +22,7 @@ import {
   Tooltip,
   PieChart,
   Pie,
-  Cell,
-  BarChart
+  Cell
 } from 'recharts';
 import AdminLayout from '../../components/admin/AdminLayout';
 
@@ -62,8 +61,35 @@ const sparklines = {
   aov: [22000, 23500, 24000, 24800, 25200, 25600, 25938]
 };
 
+const defaultOrders = [
+  { id: 'VSN-784920', name: 'Priya Sundaram', date: '20 Aug 2024', total: '₹31,499', pay: 'Paid', status: 'Shipped', statusColor: 'bg-purple-50 text-purple-700' },
+  { id: 'VSN-658421', name: 'Ananya Sharma', date: '20 Aug 2024', total: '₹24,225', pay: 'Paid', status: 'Processing', statusColor: 'bg-blue-50 text-blue-700' },
+  { id: 'VSN-452810', name: 'Meera Rao', date: '19 Aug 2024', total: '₹18,750', pay: 'Pending', status: 'Pending', statusColor: 'bg-orange-50 text-orange-700' },
+  { id: 'VSN-321654', name: 'Neha Iyer', date: '19 Aug 2024', total: '₹14,999', pay: 'Paid', status: 'Delivered', statusColor: 'bg-green-50 text-green-700' },
+  { id: 'VSN-123987', name: 'Kavita Singh', date: '18 Aug 2024', total: '₹22,100', pay: 'Paid', status: 'Delivered', statusColor: 'bg-green-50 text-green-700' }
+];
+
 export default function AdminDashboard() {
   const navigate = useNavigate();
+  const [recentOrders, setRecentOrders] = useState(defaultOrders);
+
+  useEffect(() => {
+    try {
+      const savedOrders = JSON.parse(localStorage.getItem('vasana_orders') || '[]');
+      if (savedOrders.length > 0) {
+        const formattedSaved = savedOrders.map(o => ({
+          id: o._id || o.id,
+          name: o.customer || 'Customer',
+          date: o.date || 'Today',
+          total: typeof o.total === 'number' ? `₹${o.total.toLocaleString('en-IN')}` : (o.total || '₹0'),
+          pay: o.payment?.includes('Paid') ? 'Paid' : 'Pending',
+          status: o.status || 'Processing',
+          statusColor: o.status === 'Delivered' ? 'bg-green-50 text-green-700' : 'bg-blue-50 text-blue-700'
+        }));
+        setRecentOrders([...formattedSaved, ...defaultOrders].slice(0, 5));
+      }
+    } catch(e) {}
+  }, []);
 
   return (
     <AdminLayout>
@@ -87,7 +113,6 @@ export default function AdminDashboard() {
                 <span>14% vs last month</span>
               </div>
             </div>
-            {/* Sparkline Visual */}
             <div className="h-6 flex items-end space-x-1 pt-1">
               {sparklines.revenue.map((val, i) => (
                 <div key={i} className="flex-1 bg-[#B8924A]/40 hover:bg-[#B8924A] rounded-t transition-all" style={{ height: `${(val / 100) * 100}%` }} />
@@ -104,7 +129,7 @@ export default function AdminDashboard() {
               </div>
             </div>
             <div>
-              <div className="font-sans text-2xl font-bold text-[#1F1A17]">48</div>
+              <div className="font-sans text-2xl font-bold text-[#1F1A17]">{48 + recentOrders.length - defaultOrders.length}</div>
               <div className="flex items-center text-[10px] font-sans text-[#16A34A] font-semibold mt-1">
                 <ArrowUpRight className="w-3 h-3 mr-0.5" />
                 <span>8% vs last month</span>
@@ -205,10 +230,8 @@ export default function AdminDashboard() {
 
         </div>
 
-        {/* ROW 2: CHARTS (Revenue Trend, Order Status Donut, Top 5 Sarees) */}
+        {/* ROW 2: CHARTS */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-          
-          {/* Revenue & Orders Trend */}
           <div className="lg:col-span-6 bg-white p-6 rounded-xl border border-[#EFE7DC] shadow-sm space-y-4">
             <div className="flex items-center justify-between border-b border-[#EFE7DC] pb-3">
               <div>
@@ -237,23 +260,16 @@ export default function AdminDashboard() {
             </div>
           </div>
 
-          {/* Order Status Donut */}
           <div className="lg:col-span-3 bg-white p-6 rounded-xl border border-[#EFE7DC] shadow-sm space-y-4 flex flex-col justify-between">
             <div className="border-b border-[#EFE7DC] pb-3">
               <h3 className="font-serif text-lg font-normal text-[#1F1A17]">Order Status</h3>
-              <p className="text-[10px] font-sans text-gray-400">Total Orders: 48</p>
+              <p className="text-[10px] font-sans text-gray-400">Total Orders: {48 + recentOrders.length - defaultOrders.length}</p>
             </div>
 
             <div className="h-44 relative flex items-center justify-center">
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
-                  <Pie
-                    data={orderStatusPieData}
-                    innerRadius={50}
-                    outerRadius={70}
-                    paddingAngle={3}
-                    dataKey="value"
-                  >
+                  <Pie data={orderStatusPieData} innerRadius={50} outerRadius={70} paddingAngle={3} dataKey="value">
                     {orderStatusPieData.map((entry, index) => (
                       <Cell key={`cell-${index}`} fill={entry.color} />
                     ))}
@@ -262,7 +278,7 @@ export default function AdminDashboard() {
                 </PieChart>
               </ResponsiveContainer>
               <div className="absolute text-center">
-                <span className="font-sans text-2xl font-bold text-[#1F1A17]">48</span>
+                <span className="font-sans text-2xl font-bold text-[#1F1A17]">{48 + recentOrders.length - defaultOrders.length}</span>
                 <span className="block text-[9px] font-sans text-gray-400 uppercase font-bold">TOTAL</span>
               </div>
             </div>
@@ -280,7 +296,6 @@ export default function AdminDashboard() {
             </div>
           </div>
 
-          {/* Top 5 Best Selling Sarees */}
           <div className="lg:col-span-3 bg-white p-6 rounded-xl border border-[#EFE7DC] shadow-sm space-y-4">
             <div className="border-b border-[#EFE7DC] pb-3">
               <h3 className="font-serif text-lg font-normal text-[#1F1A17]">Top 5 Best Selling Sarees</h3>
@@ -295,22 +310,16 @@ export default function AdminDashboard() {
                     <strong className="text-[#B8924A]">₹{item.revenue.toLocaleString('en-IN')}</strong>
                   </div>
                   <div className="w-full bg-[#FAF6F0] h-2 rounded-full overflow-hidden">
-                    <div
-                      className="bg-[#B8924A] h-2 rounded-full"
-                      style={{ width: `${(item.revenue / 245000) * 100}%` }}
-                    />
+                    <div className="bg-[#B8924A] h-2 rounded-full" style={{ width: `${(item.revenue / 245000) * 100}%` }} />
                   </div>
                 </div>
               ))}
             </div>
           </div>
-
         </div>
 
         {/* ROW 3: INVENTORY OVERVIEW, RECENT ORDERS TABLE & LOW STOCK ALERTS */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-          
-          {/* Inventory Overview */}
           <div className="lg:col-span-3 bg-white p-6 rounded-xl border border-[#EFE7DC] shadow-sm space-y-4 flex flex-col justify-between">
             <div>
               <h3 className="font-serif text-lg font-normal text-[#1F1A17] border-b border-[#EFE7DC] pb-3">Inventory Overview</h3>
@@ -335,16 +344,10 @@ export default function AdminDashboard() {
             </div>
 
             <div className="space-y-2 pt-4">
-              <button
-                onClick={() => navigate('/admin/inventory')}
-                className="w-full py-2.5 bg-[#B8924A] hover:bg-[#D4B26A] text-[#1F1A17] text-xs font-sans font-bold uppercase tracking-wider rounded-lg transition-colors shadow-sm"
-              >
+              <button onClick={() => navigate('/admin/inventory')} className="w-full py-2.5 bg-[#B8924A] hover:bg-[#D4B26A] text-[#1F1A17] text-xs font-sans font-bold uppercase tracking-wider rounded-lg transition-colors shadow-sm">
                 View Inventory
               </button>
-              <button
-                onClick={() => navigate('/admin/inventory')}
-                className="w-full py-2.5 border border-[#1F1A17] hover:bg-[#1F1A17] hover:text-white text-[#1F1A17] text-xs font-sans font-bold uppercase tracking-wider rounded-lg transition-colors"
-              >
+              <button onClick={() => navigate('/admin/inventory')} className="w-full py-2.5 border border-[#1F1A17] hover:bg-[#1F1A17] hover:text-white text-[#1F1A17] text-xs font-sans font-bold uppercase tracking-wider rounded-lg transition-colors">
                 Restock Products
               </button>
             </div>
@@ -373,13 +376,7 @@ export default function AdminDashboard() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
-                  {[
-                    { id: 'VSN-784920', name: 'Priya Sundaram', date: '20 Aug 2024', total: '₹31,499', pay: 'Paid', status: 'Shipped', statusColor: 'bg-purple-50 text-purple-700' },
-                    { id: 'VSN-658421', name: 'Ananya Sharma', date: '20 Aug 2024', total: '₹24,225', pay: 'Paid', status: 'Processing', statusColor: 'bg-blue-50 text-blue-700' },
-                    { id: 'VSN-452810', name: 'Meera Rao', date: '19 Aug 2024', total: '₹18,750', pay: 'Pending', status: 'Pending', statusColor: 'bg-orange-50 text-orange-700' },
-                    { id: 'VSN-321654', name: 'Neha Iyer', date: '19 Aug 2024', total: '₹14,999', pay: 'Paid', status: 'Delivered', statusColor: 'bg-green-50 text-green-700' },
-                    { id: 'VSN-123987', name: 'Kavita Singh', date: '18 Aug 2024', total: '₹22,100', pay: 'Paid', status: 'Delivered', statusColor: 'bg-green-50 text-green-700' }
-                  ].map((row) => (
+                  {recentOrders.map((row) => (
                     <tr key={row.id} className="hover:bg-[#FAF6F0]/50 transition-colors">
                       <td className="p-2.5 font-mono font-bold text-[#B8924A]">{row.id}</td>
                       <td className="p-2.5 font-semibold text-[#1F1A17]">{row.name}</td>
@@ -399,7 +396,6 @@ export default function AdminDashboard() {
             </div>
           </div>
 
-          {/* Recent Low Stock Alerts */}
           <div className="lg:col-span-3 bg-white p-6 rounded-xl border border-[#EFE7DC] shadow-sm space-y-4">
             <div className="flex items-center space-x-2 border-b border-[#EFE7DC] pb-3">
               <AlertTriangle className="w-4 h-4 text-[#EA580C]" />
@@ -425,14 +421,10 @@ export default function AdminDashboard() {
               ))}
             </div>
 
-            <button
-              onClick={() => navigate('/admin/inventory')}
-              className="w-full py-2 border border-[#EA580C] text-[#EA580C] hover:bg-[#EA580C] hover:text-white text-xs font-sans font-bold uppercase tracking-wider rounded-lg transition-colors pt-2"
-            >
+            <button onClick={() => navigate('/admin/inventory')} className="w-full py-2 border border-[#EA580C] text-[#EA580C] hover:bg-[#EA580C] hover:text-white text-xs font-sans font-bold uppercase tracking-wider rounded-lg transition-colors pt-2">
               MANAGE INVENTORY ALERTS
             </button>
           </div>
-
         </div>
 
       </div>

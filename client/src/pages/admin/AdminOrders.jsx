@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Search, Filter, Download, Eye, ChevronLeft, ChevronRight, CheckCircle2, Clock, XCircle, Truck, Package } from 'lucide-react';
 import AdminLayout from '../../components/admin/AdminLayout';
 import { useToast } from '../../context/ToastContext';
@@ -26,6 +26,28 @@ export default function AdminOrders() {
   const [selectedOrderModal, setSelectedOrderModal] = useState(null);
 
   const { addToast } = useToast();
+
+  useEffect(() => {
+    try {
+      const savedOrders = JSON.parse(localStorage.getItem('vasana_orders') || '[]');
+      if (savedOrders.length > 0) {
+        const formatted = savedOrders.map(o => ({
+          id: o._id || o.id,
+          customer: o.customer || 'Customer',
+          email: o.email || 'customer@example.com',
+          city: o.city || 'Bengaluru',
+          date: o.date || 'Today',
+          total: typeof o.total === 'number' ? o.total : parseInt(String(o.total).replace(/\D/g,'')) || 0,
+          payment: o.payment || 'Razorpay (Paid)',
+          status: o.status || 'Processing',
+          items: o.items || '1 Saree'
+        }));
+        const combined = [...formatted, ...sampleOrders];
+        const unique = combined.filter((v, i, a) => a.findIndex(t => t.id === v.id) === i);
+        setOrdersList(unique);
+      }
+    } catch(e) {}
+  }, []);
 
   const filteredOrders = ordersList.filter((ord) => {
     const matchesTab = activeTab === 'All Orders' || ord.status === activeTab;
@@ -134,7 +156,7 @@ export default function AdminOrders() {
                     </td>
                     <td className="p-4 text-gray-600">{ord.date}</td>
                     <td className="p-4 text-gray-700">{ord.items}</td>
-                    <td className="p-4 font-bold text-[#1F1A17]">₹{ord.total.toLocaleString('en-IN')}</td>
+                    <td className="p-4 font-bold text-[#1F1A17]">₹{ord.total?.toLocaleString('en-IN')}</td>
                     <td className="p-4">
                       <span className="text-[10px] font-semibold text-gray-600 bg-[#FAF6F0] px-2 py-1 rounded border border-[#EFE7DC]">
                         {ord.payment}
@@ -161,7 +183,7 @@ export default function AdminOrders() {
 
           {/* Pagination Footer */}
           <div className="p-4 bg-[#FAF6F0] border-t border-[#EFE7DC] flex items-center justify-between text-xs text-gray-500 font-sans">
-            <span>Showing 1 to {filteredOrders.length} of 48 orders</span>
+            <span>Showing 1 to {filteredOrders.length} of {ordersList.length} orders</span>
             <div className="flex items-center space-x-2">
               <button disabled className="p-1 border rounded bg-white opacity-50"><ChevronLeft className="w-4 h-4" /></button>
               <span className="px-2 py-1 bg-[#B8924A] text-white font-bold rounded">1</span>
@@ -203,7 +225,7 @@ export default function AdminOrders() {
               </div>
               <div className="flex justify-between text-sm font-bold text-[#1F1A17] border-t pt-2">
                 <span>Total Paid:</span>
-                <span className="text-[#B8924A]">₹{selectedOrderModal.total.toLocaleString('en-IN')}</span>
+                <span className="text-[#B8924A]">₹{selectedOrderModal.total?.toLocaleString('en-IN')}</span>
               </div>
             </div>
 
