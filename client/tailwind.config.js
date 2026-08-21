@@ -8,16 +8,18 @@ export default {
     extend: {
       colors: {
         vasana: {
-          bg: '#FBF7F2',
-          burgundy: '#6B1E32',
-          burgundyDark: '#4A1322',
-          gold: '#C89B5C',
-          goldLight: '#E5C594',
-          dark: '#24201D',
-          rose: '#E8D4C0',
-          roseLight: '#F5EBE1',
-          cream: '#FFFDF9',
-          accent: '#A42A46'
+          bg: '#F7F3ED',          // Warm Luxury Linen Cream
+          primary: '#241C18',     // Deep Espresso Black
+          secondary: '#6B5546',   // Warm Terracotta Taupe
+          gold: '#B4975A',        // Muted Antique Gold
+          goldLight: '#C5AC73',
+          lightSection: '#EFE7DC',// Soft Sandstone
+          white: '#FFFFFF',
+          text: '#29231F',        // Soft Charcoal Black
+          rose: '#EFE7DC',
+          dark: '#241C18',
+          burgundy: '#241C18',
+          burgundyDark: '#1A1411',
         }
       },
       fontFamily: {
@@ -27,9 +29,9 @@ export default {
         playfair: ['"Playfair Display"', 'serif'],
       },
       boxShadow: {
-        'luxury': '0 20px 40px -15px rgba(36, 32, 29, 0.08)',
-        'luxury-hover': '0 25px 50px -12px rgba(107, 30, 50, 0.15)',
-        'gold-glow': '0 0 20px rgba(200, 155, 92, 0.25)',
+        'luxury': '0 20px 40px -15px rgba(36, 28, 24, 0.06)',
+        'luxury-hover': '0 25px 50px -12px rgba(36, 28, 24, 0.12)',
+        'gold-glow': '0 0 20px rgba(180, 151, 90, 0.2)',
       },
       letterSpacing: {
         'widest-editorial': '0.25em',

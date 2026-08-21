@@ -1,30 +1,28 @@
 import React, { useState, useEffect } from 'react';
 import HeroSection from '../components/HeroSection';
 import ShopByMood from '../components/ShopByMood';
-import FeaturedCarousel from '../components/FeaturedCarousel';
-import CraftStorySection from '../components/CraftStorySection';
-import ShopTheLookSection from '../components/ShopTheLookSection';
-import SareeVisualizerModal from '../components/SareeVisualizerModal';
-import QuickViewModal from '../components/QuickViewModal';
-import ProductCard from '../components/ProductCard';
+import NewArrivalsSection from '../components/NewArrivalsSection';
+import SignatureSareesSection from '../components/SignatureSareesSection';
+import FabricStoriesSection from '../components/FabricStoriesSection';
+import VasanaAIStylistBanner from '../components/VasanaAIStylistBanner';
+import OurStorySection from '../components/OurStorySection';
+import WeavingJourneySection from '../components/WeavingJourneySection';
+import WhyVasanaSection from '../components/WhyVasanaSection';
+import TestimonialCarousel from '../components/TestimonialCarousel';
+import MomentsInVasana from '../components/MomentsInVasana';
+import VasanaJournalSection from '../components/VasanaJournalSection';
+
 import api from '../services/api';
 import { fallbackProducts } from '../utils/fallbackData';
-import { Sparkles, ArrowRight } from 'lucide-react';
-import { Link } from 'react-router-dom';
 
 export default function Home() {
-  const [featuredProducts, setFeaturedProducts] = useState(fallbackProducts.slice(0, 4));
-  const [newArrivals, setNewArrivals] = useState(fallbackProducts.slice(4, 8));
-  const [selectedQuickView, setSelectedQuickView] = useState(null);
-  const [visualizerOpen, setVisualizerOpen] = useState(false);
+  const [products, setProducts] = useState(fallbackProducts);
 
   useEffect(() => {
     api.get('/products?limit=12')
       .then((res) => {
         if (res.data?.products?.length) {
-          const prods = res.data.products;
-          setFeaturedProducts(prods.slice(0, 4));
-          setNewArrivals(prods.slice(4, 8));
+          setProducts(res.data.products);
         }
       })
       .catch(() => {
@@ -33,101 +31,44 @@ export default function Home() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-vasana-bg">
-      {/* Hero Viewport Carousel */}
+    <div className="min-h-screen bg-[#F7F3ED] font-sans selection:bg-[#241C18] selection:text-white">
+      
+      {/* 1. Cinematic Hero Viewport Slider */}
       <HeroSection />
 
-      {/* Shop By Mood */}
+      {/* 2. Shop by Moment */}
       <ShopByMood />
 
-      {/* Featured Collection Slider */}
-      <FeaturedCarousel
-        title="Featured Heirloom Sarees"
-        subtitle="Masterpieces hand-selected for extraordinary moments."
-        products={featuredProducts}
-        onQuickView={(prod) => setSelectedQuickView(prod)}
-      />
+      {/* 3. New Arrivals */}
+      <NewArrivalsSection products={products} />
 
-      {/* Saree Visualizer Banner */}
-      <section className="py-16 bg-gradient-to-r from-vasana-burgundyDark via-vasana-burgundy to-vasana-burgundyDark text-white relative overflow-hidden">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 flex flex-col md:flex-row items-center justify-between gap-8">
-          <div className="space-y-3 max-w-xl text-center md:text-left">
-            <div className="inline-flex items-center space-x-2 text-xs font-sans tracking-super-wide text-vasana-gold uppercase font-bold">
-              <Sparkles className="w-4 h-4" />
-              <span>AI DRAPE ASSISTANT</span>
-            </div>
-            <h3 className="font-serif text-3xl sm:text-4xl font-light">
-              Not sure which saree fits your event?
-            </h3>
-            <p className="font-sans text-xs sm:text-sm text-vasana-rose/80">
-              Answer 2 simple questions about your occasion & preferred style aesthetic, and our drape algorithm will present your perfect matches.
-            </p>
-          </div>
+      {/* 4. Our Signature Sarees */}
+      <SignatureSareesSection />
 
-          <button
-            onClick={() => setVisualizerOpen(true)}
-            className="px-8 py-4 bg-vasana-gold hover:bg-vasana-goldLight text-vasana-dark text-xs font-sans font-bold tracking-super-wide uppercase transition-all duration-300 shadow-luxury shrink-0"
-          >
-            LAUNCH SAREE VISUALIZER
-          </button>
-        </div>
-      </section>
+      {/* 5. Fabric Stories ("The Art of the Weave") */}
+      <FabricStoriesSection />
 
-      {/* Craft Story Section */}
-      <CraftStorySection />
+      {/* 6. Vasana AI Stylist Banner */}
+      <VasanaAIStylistBanner />
 
-      {/* Shop The Look Styling */}
-      <ShopTheLookSection />
+      {/* 7. Our Story */}
+      <OurStorySection />
 
-      {/* New Arrivals Section */}
-      <section className="py-20 bg-white border-b border-vasana-rose/40">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          
-          <div className="text-center max-w-2xl mx-auto mb-14">
-            <span className="text-xs font-sans tracking-super-wide text-vasana-gold uppercase font-bold">
-              FRESH OFF THE LOOM
-            </span>
-            <h2 className="font-serif text-3xl sm:text-5xl font-light text-vasana-dark mt-1">
-              New Arrivals
-            </h2>
-            <div className="w-12 h-[2px] bg-vasana-gold mx-auto mt-4" />
-          </div>
+      {/* 8. Weaving Journey (THREAD → WEAVE → SAREE → YOUR MOMENT) */}
+      <WeavingJourneySection />
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {newArrivals.map((prod) => (
-              <ProductCard
-                key={prod._id}
-                product={prod}
-                onQuickView={(p) => setSelectedQuickView(p)}
-              />
-            ))}
-          </div>
+      {/* 9. Why Vasana */}
+      <WhyVasanaSection />
 
-          <div className="text-center mt-12">
-            <Link
-              to="/shop?sort=newest"
-              className="inline-flex items-center space-x-2 px-8 py-3.5 border border-vasana-burgundy text-vasana-burgundy hover:bg-vasana-burgundy hover:text-white text-xs font-sans font-bold tracking-widest uppercase transition-all duration-300"
-            >
-              <span>VIEW ALL NEW ARRIVALS</span>
-              <ArrowRight className="w-4 h-4" />
-            </Link>
-          </div>
+      {/* 10. Luxury Testimonials */}
+      <TestimonialCarousel />
 
-        </div>
-      </section>
+      {/* 11. Moments in Vasana */}
+      <MomentsInVasana />
 
-      {/* Modals */}
-      {selectedQuickView && (
-        <QuickViewModal
-          product={selectedQuickView}
-          onClose={() => setSelectedQuickView(null)}
-        />
-      )}
+      {/* 12. The Vasana Journal */}
+      <VasanaJournalSection />
 
-      <SareeVisualizerModal
-        isOpen={visualizerOpen}
-        onClose={() => setVisualizerOpen(false)}
-      />
     </div>
   );
 }

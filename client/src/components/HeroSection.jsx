@@ -1,155 +1,139 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronLeft, ChevronRight, ArrowDown } from 'lucide-react';
+import { ArrowRight, ChevronLeft, ChevronRight } from 'lucide-react';
 
 const heroSlides = [
   {
     id: 1,
-    title: 'THE ART OF DRAPING',
-    subtitle: 'Timeless sarees. Modern stories.',
-    collection: 'Silk Stories',
     image: 'https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&w=2000&q=85',
-    link: '/shop?collection=Silk+Stories'
+    tag: 'THE HERITAGE EDIT',
+    title: 'Woven for your moments.',
+    subtitle: 'Timeless Indian sarees, thoughtfully curated for celebrations, rituals and everything in between.'
   },
   {
     id: 2,
-    title: 'THE WEDDING EDIT',
-    subtitle: 'For the moments you\'ll remember forever.',
-    collection: 'Wedding Edit',
     image: 'https://images.unsplash.com/photo-1617627143750-d86bc21e42bb?auto=format&fit=crop&w=2000&q=85',
-    link: '/wedding'
+    tag: 'ROYAL BRIDAL TROUSSEAU',
+    title: 'Heirloom Kanjivaram Silks',
+    subtitle: 'Woven over 240 hours by hereditary master weavers in Kanchipuram.'
   },
   {
     id: 3,
-    title: 'FESTIVE SPLENDOR',
-    subtitle: 'Woven with gold threads and heritage Grace.',
-    collection: 'Festive Collection',
     image: 'https://images.unsplash.com/photo-1583391733956-6c78276477e2?auto=format&fit=crop&w=2000&q=85',
-    link: '/shop?collection=Festive+Collection'
-  },
-  {
-    id: 4,
-    title: 'EVERYDAY ELEGANCE',
-    subtitle: 'Breathtaking handlooms for effortless drape.',
-    collection: 'Everyday Grace',
-    image: 'https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&w=2000&q=85',
-    link: '/shop?collection=Everyday+Grace'
+    tag: 'MODERN FESTIVE ELEGANCE',
+    title: 'Varanasi Kadwa Zari',
+    subtitle: 'Authentic Banarasi brocades created for unforgettable celebrations.'
   }
 ];
 
 export default function HeroSection() {
-  const [currentSlide, setCurrentSlide] = useState(0);
+  const [currentIdx, setCurrentIdx] = useState(0);
 
   useEffect(() => {
     const timer = setInterval(() => {
-      setCurrentSlide((prev) => (prev + 1) % heroSlides.length);
+      setCurrentIdx((prev) => (prev + 1) % heroSlides.length);
     }, 6000);
     return () => clearInterval(timer);
   }, []);
 
-  const slide = heroSlides[currentSlide];
+  const slide = heroSlides[currentIdx];
 
   return (
-    <section className="relative h-screen w-full overflow-hidden bg-vasana-dark">
-      {/* Slide Image Background Carousel */}
+    <section className="relative h-screen w-full bg-[#241C18] text-white overflow-hidden flex items-center justify-center">
+      {/* Background Image Carousel with Zoom Motion */}
       <AnimatePresence mode="wait">
         <motion.div
           key={slide.id}
           initial={{ opacity: 0, scale: 1.08 }}
           animate={{ opacity: 1, scale: 1 }}
           exit={{ opacity: 0, scale: 1.04 }}
-          transition={{ duration: 1.4, ease: [0.16, 1, 0.3, 1] }}
-          className="absolute inset-0 bg-cover bg-center"
-          style={{ backgroundImage: `url(${slide.image})` }}
+          transition={{ duration: 1.2, ease: [0.25, 1, 0.5, 1] }}
+          className="absolute inset-0 z-0"
         >
-          {/* Subtle Dark Vignette Overlay */}
-          <div className="absolute inset-0 bg-gradient-to-t from-vasana-dark via-vasana-dark/40 to-black/30" />
+          <img
+            src={slide.image}
+            alt={slide.title}
+            className="w-full h-full object-cover object-center brightness-75"
+          />
+          {/* Subtle Luxury Gradient Overlay */}
+          <div className="absolute inset-0 bg-gradient-to-t from-[#241C18]/90 via-[#241C18]/30 to-black/40" />
         </motion.div>
       </AnimatePresence>
 
-      {/* Hero Content Overlay */}
-      <div className="relative z-20 h-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col justify-center items-center text-center text-white">
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={slide.id}
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            transition={{ duration: 0.8, delay: 0.2 }}
-            className="max-w-3xl space-y-6"
+      {/* Main Content Overlay */}
+      <div className="relative z-10 max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 text-center space-y-6 pt-20">
+        
+        {/* Subtle Tag */}
+        <motion.span
+          key={`tag-${slide.id}`}
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8, delay: 0.2 }}
+          className="inline-block text-[10px] sm:text-xs font-sans font-bold tracking-super-wide uppercase text-[#B4975A]"
+        >
+          {slide.tag}
+        </motion.span>
+
+        {/* Headline */}
+        <motion.h1
+          key={`title-${slide.id}`}
+          initial={{ opacity: 0, y: 30 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.9, delay: 0.3 }}
+          className="font-serif text-4xl sm:text-6xl md:text-7xl font-light text-[#F7F3ED] leading-tight tracking-tight"
+        >
+          {slide.title}
+        </motion.h1>
+
+        {/* Subheading */}
+        <motion.p
+          key={`sub-${slide.id}`}
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.9, delay: 0.4 }}
+          className="font-sans text-xs sm:text-sm text-[#EFE7DC]/90 max-w-2xl mx-auto font-light leading-relaxed tracking-wide"
+        >
+          {slide.subtitle}
+        </motion.p>
+
+        {/* Action Buttons */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.9, delay: 0.5 }}
+          className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-4"
+        >
+          <Link
+            to="/shop"
+            className="w-full sm:w-auto px-8 py-4 bg-[#B4975A] hover:bg-[#C5AC73] text-[#241C18] text-xs font-sans font-bold tracking-super-wide uppercase transition-all duration-300 shadow-luxury flex items-center justify-center space-x-2"
           >
-            {/* Tag / Collection */}
-            <span className="inline-block text-xs sm:text-sm font-sans tracking-super-wide text-vasana-gold uppercase font-semibold">
-              {slide.collection}
-            </span>
+            <span>EXPLORE COLLECTION</span>
+            <ArrowRight className="w-4 h-4" />
+          </Link>
 
-            {/* Main Heading */}
-            <h1 className="font-serif text-4xl sm:text-6xl md:text-7xl lg:text-8xl tracking-wider font-light leading-none">
-              {slide.title}
-            </h1>
+          <Link
+            to="/about"
+            className="w-full sm:w-auto px-8 py-4 border border-[#F7F3ED]/40 text-[#F7F3ED] hover:bg-[#F7F3ED] hover:text-[#241C18] text-xs font-sans font-bold tracking-super-wide uppercase transition-all duration-300"
+          >
+            <span>DISCOVER VASANA</span>
+          </Link>
+        </motion.div>
 
-            {/* Expanding Decorative Gold Line */}
-            <motion.div
-              initial={{ width: 0 }}
-              animate={{ width: '80px' }}
-              transition={{ duration: 0.8, delay: 0.5 }}
-              className="h-[2px] bg-vasana-gold mx-auto"
-            />
-
-            {/* Subtitle */}
-            <p className="font-serif text-lg sm:text-2xl text-vasana-rose/90 italic font-light">
-              {slide.subtitle}
-            </p>
-
-            {/* CTA Button */}
-            <div className="pt-4">
-              <Link
-                to={slide.link}
-                className="inline-block px-8 py-4 bg-vasana-gold hover:bg-vasana-goldLight text-vasana-dark font-sans text-xs sm:text-sm tracking-super-wide font-bold uppercase transition-all duration-300 transform hover:-translate-y-0.5 shadow-luxury"
-              >
-                EXPLORE COLLECTION
-              </Link>
-            </div>
-          </motion.div>
-        </AnimatePresence>
       </div>
 
-      {/* Controls: Left / Right Arrows */}
-      <div className="absolute inset-y-0 left-4 right-4 z-20 flex items-center justify-between pointer-events-none">
-        <button
-          onClick={() => setCurrentSlide((prev) => (prev - 1 + heroSlides.length) % heroSlides.length)}
-          className="pointer-events-auto p-3 rounded-full bg-black/30 hover:bg-vasana-gold text-white hover:text-vasana-dark backdrop-blur-md transition-all duration-300"
-          aria-label="Previous Slide"
-        >
-          <ChevronLeft className="w-6 h-6" />
-        </button>
-        <button
-          onClick={() => setCurrentSlide((prev) => (prev + 1) % heroSlides.length)}
-          className="pointer-events-auto p-3 rounded-full bg-black/30 hover:bg-vasana-gold text-white hover:text-vasana-dark backdrop-blur-md transition-all duration-300"
-          aria-label="Next Slide"
-        >
-          <ChevronRight className="w-6 h-6" />
-        </button>
-      </div>
-
-      {/* Pagination Dots & Scroll Down */}
-      <div className="absolute bottom-8 left-0 right-0 z-20 flex flex-col items-center space-y-4">
-        <div className="flex space-x-3">
-          {heroSlides.map((_, idx) => (
-            <button
-              key={idx}
-              onClick={() => setCurrentSlide(idx)}
-              className={`h-1.5 transition-all duration-500 rounded-full ${
-                currentSlide === idx ? 'w-8 bg-vasana-gold' : 'w-2 bg-white/40'
-              }`}
-            />
-          ))}
-        </div>
-        <div className="animate-bounce text-vasana-gold/80 flex items-center space-x-1 text-[10px] tracking-widest font-sans uppercase">
-          <span>Scroll</span>
-          <ArrowDown className="w-3 h-3" />
-        </div>
+      {/* Slide Indicators */}
+      <div className="absolute bottom-8 left-0 right-0 z-20 flex justify-center items-center space-x-3">
+        {heroSlides.map((s, idx) => (
+          <button
+            key={s.id}
+            onClick={() => setCurrentIdx(idx)}
+            className={`transition-all duration-500 rounded-full ${
+              currentIdx === idx ? 'w-8 h-1.5 bg-[#B4975A]' : 'w-2 h-1.5 bg-white/40 hover:bg-white/70'
+            }`}
+            aria-label={`Slide ${idx + 1}`}
+          />
+        ))}
       </div>
     </section>
   );

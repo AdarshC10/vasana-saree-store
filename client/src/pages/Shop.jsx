@@ -4,11 +4,10 @@ import ProductCard from '../components/ProductCard';
 import QuickViewModal from '../components/QuickViewModal';
 import api from '../services/api';
 import { fallbackProducts } from '../utils/fallbackData';
-import { Filter, SlidersHorizontal, ChevronDown, X, RefreshCw, Search } from 'lucide-react';
+import { SlidersHorizontal, X, Search } from 'lucide-react';
 
 const categories = ['Banarasi', 'Kanjeevaram', 'Chanderi', 'Organza', 'Linen', 'Georgette', 'Tussar Silk', 'Velvet', 'Handloom Cotton'];
 const occasions = ['Wedding', 'Festive', 'Everyday', 'Party', 'Bridal', 'Formal'];
-const collections = ['Silk Stories', 'Wedding Edit', 'Festive Collection', 'Everyday Grace', 'Royalty'];
 
 export default function Shop() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -35,7 +34,7 @@ export default function Shop() {
     setLoading(true);
     try {
       const params = new URLSearchParams();
-      params.append('limit', 20);
+      params.append('limit', 30);
       params.append('sort', sort);
 
       if (selectedCategory) params.append('category', selectedCategory);
@@ -44,7 +43,7 @@ export default function Shop() {
       if (searchQuery) params.append('search', searchQuery);
 
       const res = await api.get(`/products?${params.toString()}`);
-      if (res.data?.products?.length) {
+      if (Array.isArray(res.data?.products) && res.data.products.length > 0) {
         setProducts(res.data.products);
         setTotal(res.data.total || res.data.products.length);
       } else {
@@ -100,60 +99,60 @@ export default function Shop() {
   };
 
   return (
-    <div className="min-h-screen bg-vasana-bg pt-28 pb-20">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-[#F7F3ED] text-[#29231F] pt-32 pb-20">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-10">
         
         {/* Page Banner Header */}
-        <div className="text-center max-w-3xl mx-auto mb-10">
-          <span className="text-xs font-sans tracking-super-wide text-vasana-gold uppercase font-bold">
-            THE LUXURY CATALOGUE
+        <div className="text-center max-w-3xl mx-auto">
+          <span className="text-[10px] font-sans tracking-super-wide text-[#B4975A] uppercase font-bold">
+            HAUTE COUTURE CATALOGUE
           </span>
-          <h1 className="font-serif text-4xl sm:text-5xl font-light text-vasana-dark mt-1">
+          <h1 className="font-serif text-4xl sm:text-5xl font-light text-[#241C18] mt-1">
             Handcrafted Saree Collection
           </h1>
-          <p className="text-xs font-sans text-gray-500 mt-2">
-            Showing {total} exquisite pieces woven by master artisans
+          <p className="text-xs font-sans text-gray-500 font-light mt-2">
+            Showing {total} heirloom pieces woven by hereditary master artisans
           </p>
-          <div className="w-12 h-[2px] bg-vasana-gold mx-auto mt-4" />
+          <div className="w-12 h-[1px] bg-[#B4975A] mx-auto mt-4" />
         </div>
 
         {/* Top Control Bar */}
-        <div className="flex flex-col sm:flex-row items-center justify-between border-y border-vasana-rose/50 py-4 mb-8 gap-4">
+        <div className="flex flex-col sm:flex-row items-center justify-between border-y border-[#EFE7DC] py-4 gap-4">
           <button
             onClick={() => setMobileFilterOpen(true)}
-            className="lg:hidden w-full sm:w-auto py-2.5 px-4 border border-vasana-gold text-vasana-dark text-xs font-sans font-bold tracking-widest uppercase flex items-center justify-center space-x-2"
+            className="lg:hidden w-full sm:w-auto py-2.5 px-4 border border-[#B4975A] text-[#241C18] text-xs font-sans font-bold tracking-widest uppercase flex items-center justify-center space-x-2"
           >
-            <SlidersHorizontal className="w-4 h-4 text-vasana-burgundy" />
+            <SlidersHorizontal className="w-4 h-4 text-[#B4975A]" />
             <span>FILTER SAREES</span>
           </button>
 
-          <div className="hidden lg:flex flex-wrap gap-2 items-center text-xs">
-            <span className="text-gray-400 uppercase font-sans font-semibold text-[10px]">Active Filters:</span>
+          <div className="hidden lg:flex flex-wrap gap-2 items-center text-xs font-sans">
+            <span className="text-gray-400 uppercase font-semibold text-[10px]">Active Filters:</span>
             {selectedCategory && (
-              <span className="bg-vasana-rose/40 text-vasana-burgundy px-2.5 py-1 flex items-center space-x-1 font-sans">
+              <span className="bg-[#EFE7DC] text-[#241C18] px-2.5 py-1 flex items-center space-x-1">
                 <span>Category: {selectedCategory}</span>
                 <X className="w-3 h-3 cursor-pointer" onClick={() => { setSelectedCategory(''); applyFilters(); }} />
               </span>
             )}
             {selectedOccasion && (
-              <span className="bg-vasana-rose/40 text-vasana-burgundy px-2.5 py-1 flex items-center space-x-1 font-sans">
+              <span className="bg-[#EFE7DC] text-[#241C18] px-2.5 py-1 flex items-center space-x-1">
                 <span>Occasion: {selectedOccasion}</span>
                 <X className="w-3 h-3 cursor-pointer" onClick={() => { setSelectedOccasion(''); applyFilters(); }} />
               </span>
             )}
             {(selectedCategory || selectedOccasion || searchQuery) && (
-              <button onClick={clearAllFilters} className="text-xs text-vasana-gold hover:underline font-sans ml-2">
+              <button onClick={clearAllFilters} className="text-xs text-[#B4975A] hover:underline font-medium ml-2">
                 Clear All
               </button>
             )}
           </div>
 
           <div className="flex items-center space-x-2 w-full sm:w-auto justify-end">
-            <span className="text-xs font-sans text-gray-500 uppercase tracking-wider shrink-0">Sort By:</span>
+            <span className="text-xs font-sans text-gray-500 uppercase tracking-wider shrink-0 font-medium">Sort By:</span>
             <select
               value={sort}
               onChange={(e) => setSort(e.target.value)}
-              className="bg-white border border-gray-300 py-2 px-3 text-xs font-sans focus:outline-none focus:border-vasana-gold"
+              className="bg-white border border-[#EFE7DC] py-2 px-3 text-xs font-sans focus:outline-none focus:border-[#B4975A] text-[#241C18]"
             >
               <option value="newest">Newest Arrivals</option>
               <option value="price-low">Price: Low to High</option>
@@ -167,15 +166,15 @@ export default function Shop() {
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
           
           {/* Desktop Sidebar Filters */}
-          <div className="hidden lg:block space-y-6 pr-4 border-r border-vasana-rose/40">
-            <div className="flex items-center justify-between pb-4 border-b border-vasana-rose">
-              <h3 className="font-serif text-xl font-light text-vasana-dark">Filter By</h3>
-              <button onClick={clearAllFilters} className="text-xs text-vasana-gold hover:underline font-sans">Reset</button>
+          <div className="hidden lg:block space-y-6 pr-4 border-r border-[#EFE7DC]">
+            <div className="flex items-center justify-between pb-4 border-b border-[#EFE7DC]">
+              <h3 className="font-serif text-xl font-light text-[#241C18]">Filter By</h3>
+              <button onClick={clearAllFilters} className="text-xs text-[#B4975A] hover:underline font-sans">Reset</button>
             </div>
 
             {/* Keyword Search */}
             <div>
-              <label className="text-xs font-sans font-bold uppercase tracking-wider text-vasana-dark block mb-2">Keyword Search</label>
+              <label className="text-xs font-sans font-bold uppercase tracking-wider text-[#241C18] block mb-2">Search Sarees</label>
               <div className="relative">
                 <input
                   type="text"
@@ -183,9 +182,9 @@ export default function Shop() {
                   onChange={(e) => setSearchQuery(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && applyFilters()}
                   placeholder="e.g. Silk, Banarasi, Zari..."
-                  className="w-full bg-white border border-gray-300 py-2 px-3 pr-8 text-xs focus:outline-none focus:border-vasana-gold"
+                  className="w-full bg-white border border-[#EFE7DC] py-2 px-3 pr-8 text-xs focus:outline-none focus:border-[#B4975A]"
                 />
-                <button onClick={applyFilters} className="absolute right-2 top-2 text-vasana-gold">
+                <button onClick={applyFilters} className="absolute right-2 top-2 text-[#B4975A]">
                   <Search className="w-4 h-4" />
                 </button>
               </div>
@@ -193,16 +192,16 @@ export default function Shop() {
 
             {/* Category */}
             <div>
-              <label className="text-xs font-sans font-bold uppercase tracking-wider text-vasana-dark block mb-2">Category</label>
-              <div className="space-y-1.5 max-h-48 overflow-y-auto pr-2 text-xs font-sans">
+              <label className="text-xs font-sans font-bold uppercase tracking-wider text-[#241C18] block mb-2">Category</label>
+              <div className="space-y-2 max-h-48 overflow-y-auto pr-2 text-xs font-sans">
                 {categories.map((cat) => (
-                  <label key={cat} className="flex items-center space-x-2 cursor-pointer hover:text-vasana-burgundy">
+                  <label key={cat} className="flex items-center space-x-2 cursor-pointer hover:text-[#B4975A]">
                     <input
                       type="radio"
                       name="category"
                       checked={selectedCategory === cat}
                       onChange={() => setSelectedCategory(selectedCategory === cat ? '' : cat)}
-                      className="accent-vasana-burgundy"
+                      className="accent-[#241C18]"
                     />
                     <span>{cat}</span>
                   </label>
@@ -212,16 +211,16 @@ export default function Shop() {
 
             {/* Occasion */}
             <div>
-              <label className="text-xs font-sans font-bold uppercase tracking-wider text-vasana-dark block mb-2">Occasion</label>
-              <div className="space-y-1.5 text-xs font-sans">
+              <label className="text-xs font-sans font-bold uppercase tracking-wider text-[#241C18] block mb-2">Occasion</label>
+              <div className="space-y-2 text-xs font-sans">
                 {occasions.map((occ) => (
-                  <label key={occ} className="flex items-center space-x-2 cursor-pointer hover:text-vasana-burgundy">
+                  <label key={occ} className="flex items-center space-x-2 cursor-pointer hover:text-[#B4975A]">
                     <input
                       type="radio"
                       name="occasion"
                       checked={selectedOccasion === occ}
                       onChange={() => setSelectedOccasion(selectedOccasion === occ ? '' : occ)}
-                      className="accent-vasana-burgundy"
+                      className="accent-[#241C18]"
                     />
                     <span>{occ}</span>
                   </label>
@@ -232,23 +231,23 @@ export default function Shop() {
             {/* Price Filter */}
             <div>
               <div className="flex justify-between items-center text-xs font-sans mb-2">
-                <span className="font-bold uppercase tracking-wider text-vasana-dark">Max Price</span>
-                <span className="font-bold text-vasana-burgundy">₹{Number(maxPrice).toLocaleString('en-IN')}</span>
+                <span className="font-bold uppercase tracking-wider text-[#241C18]">Max Price</span>
+                <span className="font-bold text-[#B4975A]">₹{Number(maxPrice).toLocaleString('en-IN')}</span>
               </div>
               <input
                 type="range"
-                min="5000"
+                min="1800"
                 max="50000"
                 step="2500"
                 value={maxPrice}
                 onChange={(e) => setMaxPrice(e.target.value)}
-                className="w-full accent-vasana-gold"
+                className="w-full accent-[#B4975A]"
               />
             </div>
 
             <button
               onClick={applyFilters}
-              className="w-full py-3 bg-vasana-burgundy hover:bg-vasana-burgundyDark text-white text-xs font-sans font-bold tracking-widest uppercase transition-colors"
+              className="w-full py-3 bg-[#241C18] hover:bg-[#322722] text-white text-xs font-sans font-bold tracking-widest uppercase transition-colors"
             >
               APPLY FILTERS
             </button>
@@ -257,10 +256,10 @@ export default function Shop() {
           {/* Product Listing Grid */}
           <div className="lg:col-span-3">
             {products.length === 0 ? (
-              <div className="text-center py-20 bg-white border border-vasana-rose/50 p-8">
-                <h3 className="font-serif text-3xl font-light text-vasana-dark mb-2">NO SAREES FOUND</h3>
-                <p className="text-xs font-sans text-gray-500 mb-6 max-w-sm mx-auto">We couldn't find any sarees matching your selected filter criteria.</p>
-                <button onClick={clearAllFilters} className="px-6 py-3 bg-vasana-gold text-vasana-dark text-xs font-sans font-bold tracking-widest uppercase">
+              <div className="text-center py-20 bg-white border border-[#EFE7DC] p-8 space-y-4">
+                <h3 className="font-serif text-3xl font-light text-[#241C18]">NO SAREES FOUND</h3>
+                <p className="text-xs font-sans text-gray-500 max-w-sm mx-auto">We couldn't find any sarees matching your selected filter criteria.</p>
+                <button onClick={clearAllFilters} className="px-6 py-3 bg-[#B4975A] text-[#241C18] text-xs font-sans font-bold tracking-widest uppercase">
                   RESET ALL FILTERS
                 </button>
               </div>
@@ -277,19 +276,19 @@ export default function Shop() {
 
       </div>
 
-      {/* Mobile Drawer Filter Sheet */}
+      {/* Mobile Filter Sheet */}
       {mobileFilterOpen && (
         <div className="fixed inset-0 z-50 flex flex-col justify-end lg:hidden">
           <div className="fixed inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setMobileFilterOpen(false)} />
-          <div className="relative bg-vasana-bg p-6 max-h-[85vh] overflow-y-auto z-10 space-y-6">
-            <div className="flex items-center justify-between border-b border-vasana-rose pb-4">
-              <h3 className="font-serif text-2xl font-light">Filter Sarees</h3>
+          <div className="relative bg-[#F7F3ED] p-6 max-h-[85vh] overflow-y-auto z-10 space-y-6 text-[#29231F]">
+            <div className="flex items-center justify-between border-b border-[#EFE7DC] pb-4">
+              <h3 className="font-serif text-2xl font-light text-[#241C18]">Filter Sarees</h3>
               <button onClick={() => setMobileFilterOpen(false)}><X className="w-6 h-6" /></button>
             </div>
             
             <div>
               <label className="text-xs font-bold uppercase tracking-wider block mb-2">Category</label>
-              <select value={selectedCategory} onChange={(e) => setSelectedCategory(e.target.value)} className="w-full p-2 bg-white border border-gray-300 text-xs">
+              <select value={selectedCategory} onChange={(e) => setSelectedCategory(e.target.value)} className="w-full p-2.5 bg-white border border-[#EFE7DC] text-xs">
                 <option value="">All Categories</option>
                 {categories.map((c) => <option key={c} value={c}>{c}</option>)}
               </select>
@@ -297,15 +296,15 @@ export default function Shop() {
 
             <div>
               <label className="text-xs font-bold uppercase tracking-wider block mb-2">Occasion</label>
-              <select value={selectedOccasion} onChange={(e) => setSelectedOccasion(e.target.value)} className="w-full p-2 bg-white border border-gray-300 text-xs">
+              <select value={selectedOccasion} onChange={(e) => setSelectedOccasion(e.target.value)} className="w-full p-2.5 bg-white border border-[#EFE7DC] text-xs">
                 <option value="">All Occasions</option>
                 {occasions.map((o) => <option key={o} value={o}>{o}</option>)}
               </select>
             </div>
 
             <div className="flex space-x-3 pt-4">
-              <button onClick={clearAllFilters} className="flex-1 py-3 border border-gray-300 text-xs font-bold uppercase">Reset</button>
-              <button onClick={applyFilters} className="flex-1 py-3 bg-vasana-burgundy text-white text-xs font-bold uppercase">Apply Filters</button>
+              <button onClick={clearAllFilters} className="flex-1 py-3 border border-[#241C18] text-xs font-bold uppercase">Reset</button>
+              <button onClick={applyFilters} className="flex-1 py-3 bg-[#241C18] text-white text-xs font-bold uppercase">Apply Filters</button>
             </div>
           </div>
         </div>

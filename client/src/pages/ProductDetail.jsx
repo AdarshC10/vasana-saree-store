@@ -1,11 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { Heart, ShoppingBag, Star, ShieldCheck, Truck, RotateCcw, Check, Share2, Sparkles } from 'lucide-react';
+import { Heart, ShoppingBag, Star, ShieldCheck, Truck, RotateCcw, Check } from 'lucide-react';
 import api from '../services/api';
 import { fallbackProducts } from '../utils/fallbackData';
 import { useCart } from '../context/CartContext';
 import { useWishlist } from '../context/WishlistContext';
-import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import ReviewSection from '../components/ReviewSection';
 
@@ -47,17 +46,17 @@ export default function ProductDetail() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-vasana-bg pt-32 flex justify-center items-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-vasana-gold" />
+      <div className="min-h-screen bg-[#F7F3ED] pt-32 flex justify-center items-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-[#B4975A]" />
       </div>
     );
   }
 
   if (!product) {
     return (
-      <div className="min-h-screen bg-vasana-bg pt-32 text-center p-8">
-        <h2 className="font-serif text-3xl text-vasana-dark">Product Not Found</h2>
-        <Link to="/shop" className="mt-4 inline-block text-vasana-gold underline">Return to Shop</Link>
+      <div className="min-h-screen bg-[#F7F3ED] pt-32 text-center p-8">
+        <h2 className="font-serif text-3xl text-[#241C18]">Product Not Found</h2>
+        <Link to="/shop" className="mt-4 inline-block text-[#B4975A] underline">Return to Shop</Link>
       </div>
     );
   }
@@ -78,18 +77,18 @@ export default function ProductDetail() {
   };
 
   return (
-    <div className="min-h-screen bg-vasana-bg pt-28 pb-20">
+    <div className="min-h-screen bg-[#F7F3ED] text-[#29231F] pt-32 pb-20 font-sans">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         
         {/* Breadcrumb Navigation */}
         <div className="text-xs font-sans text-gray-500 mb-8 space-x-2">
-          <Link to="/" className="hover:text-vasana-burgundy">Home</Link>
+          <Link to="/" className="hover:text-[#B4975A]">Home</Link>
           <span>/</span>
-          <Link to="/shop" className="hover:text-vasana-burgundy">Shop</Link>
+          <Link to="/shop" className="hover:text-[#B4975A]">Shop</Link>
           <span>/</span>
-          <Link to={`/shop?category=${product.category}`} className="hover:text-vasana-burgundy">{product.category}</Link>
+          <Link to={`/shop?category=${product.category}`} className="hover:text-[#B4975A]">{product.category}</Link>
           <span>/</span>
-          <span className="text-vasana-dark font-medium truncate inline-block max-w-xs align-bottom">{product.name}</span>
+          <span className="text-[#241C18] font-medium truncate inline-block max-w-xs align-bottom">{product.name}</span>
         </div>
 
         {/* Top Split: Gallery Left, Details Right */}
@@ -97,7 +96,7 @@ export default function ProductDetail() {
           
           {/* Gallery Column */}
           <div className="lg:col-span-7 space-y-4">
-            <div className="relative aspect-[3/4] bg-white border border-vasana-rose/50 overflow-hidden shadow-luxury">
+            <div className="relative aspect-[3/4] bg-[#241C18] border border-[#EFE7DC] overflow-hidden shadow-luxury">
               <img
                 src={images[selectedImgIdx]}
                 alt={product.name}
@@ -107,12 +106,12 @@ export default function ProductDetail() {
               {/* Badges */}
               <div className="absolute top-4 left-4 flex flex-col space-y-2">
                 {product.newArrival && (
-                  <span className="bg-vasana-burgundy text-white text-[10px] font-sans font-bold uppercase tracking-widest px-3 py-1">
+                  <span className="bg-[#241C18] text-white text-[10px] font-sans font-bold uppercase tracking-widest px-3 py-1">
                     NEW ARRIVAL
                   </span>
                 )}
                 {product.discount > 0 && (
-                  <span className="bg-vasana-gold text-vasana-dark text-[10px] font-sans font-bold uppercase tracking-widest px-3 py-1">
+                  <span className="bg-[#B4975A] text-[#241C18] text-[10px] font-sans font-bold uppercase tracking-widest px-3 py-1">
                     {product.discount}% OFF
                   </span>
                 )}
@@ -127,7 +126,7 @@ export default function ProductDetail() {
                     key={idx}
                     onClick={() => setSelectedImgIdx(idx)}
                     className={`w-20 h-24 border overflow-hidden transition-all shrink-0 ${
-                      selectedImgIdx === idx ? 'border-vasana-burgundy ring-2 ring-vasana-burgundy/20' : 'border-gray-200 opacity-70 hover:opacity-100'
+                      selectedImgIdx === idx ? 'border-[#B4975A] ring-2 ring-[#B4975A]/20' : 'border-gray-200 opacity-70 hover:opacity-100'
                     }`}
                   >
                     <img src={img} alt="Thumbnail" className="w-full h-full object-cover" />
@@ -140,13 +139,13 @@ export default function ProductDetail() {
           {/* Product Info Column */}
           <div className="lg:col-span-5 space-y-6">
             <div>
-              <div className="flex items-center space-x-2 text-xs font-sans text-vasana-gold font-bold uppercase tracking-super-wide mb-1">
+              <div className="flex items-center space-x-2 text-xs font-sans text-[#B4975A] font-bold uppercase tracking-super-wide mb-1">
                 <span>{product.category}</span>
                 <span>•</span>
                 <span>{product.collectionType || 'Silk Stories'}</span>
               </div>
 
-              <h1 className="font-serif text-3xl sm:text-4xl font-light text-vasana-dark leading-tight">
+              <h1 className="font-serif text-3xl sm:text-4xl font-light text-[#241C18] leading-tight">
                 {product.name}
               </h1>
 
@@ -167,8 +166,8 @@ export default function ProductDetail() {
             </div>
 
             {/* Price Box */}
-            <div className="p-4 bg-white border border-vasana-rose/50 flex items-baseline space-x-3">
-              <span className="font-sans text-3xl font-bold text-vasana-burgundy">
+            <div className="p-4 bg-white border border-[#EFE7DC] flex items-baseline space-x-3 shadow-sm">
+              <span className="font-sans text-3xl font-bold text-[#241C18]">
                 ₹{discountedPrice.toLocaleString('en-IN')}
               </span>
               {product.discount > 0 && (
@@ -182,28 +181,28 @@ export default function ProductDetail() {
             </div>
 
             {/* Quick Specs */}
-            <div className="grid grid-cols-2 gap-4 text-xs font-sans p-4 bg-vasana-rose/20 border border-vasana-rose/40">
+            <div className="grid grid-cols-2 gap-4 text-xs font-sans p-4 bg-[#EFE7DC]/50 border border-[#EFE7DC]">
               <div>
                 <span className="text-gray-500 block">Fabric</span>
-                <strong className="text-vasana-dark">{product.fabric}</strong>
+                <strong className="text-[#241C18]">{product.fabric}</strong>
               </div>
               <div>
                 <span className="text-gray-500 block">Color</span>
-                <strong className="text-vasana-dark">{product.color}</strong>
+                <strong className="text-[#241C18]">{product.color}</strong>
               </div>
               <div>
                 <span className="text-gray-500 block">Saree Length</span>
-                <strong className="text-vasana-dark">{product.sareeLength || '5.5 meters'}</strong>
+                <strong className="text-[#241C18]">{product.sareeLength || '5.5 meters'}</strong>
               </div>
               <div>
                 <span className="text-gray-500 block">Blouse Piece</span>
-                <strong className="text-vasana-dark">{product.blouseLength || '0.8 meters unstitched'}</strong>
+                <strong className="text-[#241C18]">{product.blouseLength || '0.8 meters unstitched'}</strong>
               </div>
             </div>
 
             {/* Blouse Stitching Selection */}
             <div className="space-y-2">
-              <label className="text-xs font-sans font-bold uppercase tracking-wider text-vasana-dark block">
+              <label className="text-xs font-sans font-bold uppercase tracking-wider text-[#241C18] block">
                 Blouse Tailoring Option:
               </label>
               <div className="grid grid-cols-2 gap-2 text-xs font-sans">
@@ -213,41 +212,15 @@ export default function ProductDetail() {
                     onClick={() => setBlouseOption(opt)}
                     className={`py-3 px-3 border text-left flex items-center justify-between transition-all ${
                       blouseOption === opt
-                        ? 'border-vasana-burgundy bg-vasana-rose/40 text-vasana-burgundy font-semibold'
-                        : 'border-gray-300 bg-white text-gray-700 hover:border-vasana-gold'
+                        ? 'border-[#241C18] bg-[#EFE7DC] text-[#241C18] font-semibold'
+                        : 'border-gray-300 bg-white text-gray-700 hover:border-[#B4975A]'
                     }`}
                   >
                     <span>{opt}</span>
-                    {blouseOption === opt && <Check className="w-4 h-4 text-vasana-burgundy" />}
+                    {blouseOption === opt && <Check className="w-4 h-4 text-[#241C18]" />}
                   </button>
                 ))}
               </div>
-            </div>
-
-            {/* Quantity */}
-            <div className="flex items-center space-x-4">
-              <span className="text-xs font-sans font-bold uppercase tracking-wider text-vasana-dark">
-                Quantity:
-              </span>
-              <div className="flex items-center border border-gray-300 bg-white">
-                <button
-                  onClick={() => setQuantity((q) => Math.max(1, q - 1))}
-                  className="px-3 py-1.5 text-gray-600 hover:bg-gray-100"
-                >
-                  -
-                </button>
-                <span className="px-4 py-1.5 text-xs font-bold">{quantity}</span>
-                <button
-                  onClick={() => setQuantity((q) => q + 1)}
-                  className="px-3 py-1.5 text-gray-600 hover:bg-gray-100"
-                >
-                  +
-                </button>
-              </div>
-              <span className="text-xs font-sans text-green-700 font-semibold flex items-center">
-                <span className="w-2 h-2 rounded-full bg-green-500 mr-1.5 animate-pulse" />
-                In Stock ({product.stock || 8} pieces left)
-              </span>
             </div>
 
             {/* Action Buttons */}
@@ -255,44 +228,44 @@ export default function ProductDetail() {
               <div className="flex space-x-3">
                 <button
                   onClick={() => addToCart(product, quantity, blouseOption)}
-                  className="flex-1 py-4 bg-vasana-burgundy hover:bg-vasana-burgundyDark text-white text-xs font-sans font-bold tracking-super-wide uppercase shadow-luxury transition-all flex items-center justify-center space-x-2"
+                  className="flex-1 py-4 bg-[#241C18] hover:bg-[#322722] text-white text-xs font-sans font-bold tracking-super-wide uppercase shadow-luxury transition-all flex items-center justify-center space-x-2"
                 >
-                  <ShoppingBag className="w-4 h-4 text-vasana-gold" />
+                  <ShoppingBag className="w-4 h-4 text-[#B4975A]" />
                   <span>ADD TO BAG</span>
                 </button>
 
                 <button
                   onClick={() => toggleWishlist(product)}
                   className={`p-4 border transition-all ${
-                    wishlisted ? 'border-vasana-burgundy bg-vasana-burgundy text-white' : 'border-gray-300 bg-white text-vasana-dark hover:border-vasana-burgundy'
+                    wishlisted ? 'border-[#241C18] bg-[#241C18] text-white' : 'border-gray-300 bg-white text-[#241C18] hover:border-[#241C18]'
                   }`}
                   title="Wishlist"
                 >
-                  <Heart className={`w-5 h-5 ${wishlisted ? 'fill-current' : ''}`} />
+                  <Heart className={`w-5 h-5 ${wishlisted ? 'fill-current text-[#B4975A]' : ''}`} />
                 </button>
               </div>
 
               <button
                 onClick={handleBuyNow}
-                className="w-full py-4 bg-vasana-gold hover:bg-vasana-goldLight text-vasana-dark text-xs font-sans font-bold tracking-super-wide uppercase transition-all shadow-luxury"
+                className="w-full py-4 bg-[#B4975A] hover:bg-[#C5AC73] text-[#241C18] text-xs font-sans font-bold tracking-super-wide uppercase transition-all shadow-luxury"
               >
                 BUY NOW WITH EXPRESS CHECKOUT
               </button>
             </div>
 
             {/* Trust Badges */}
-            <div className="pt-4 border-t border-vasana-rose/40 grid grid-cols-3 gap-2 text-[11px] font-sans text-gray-600">
+            <div className="pt-4 border-t border-[#EFE7DC] grid grid-cols-3 gap-2 text-[11px] font-sans text-gray-600">
               <div className="flex items-center space-x-1.5">
-                <Truck className="w-4 h-4 text-vasana-gold shrink-0" />
+                <Truck className="w-4 h-4 text-[#B4975A] shrink-0" />
                 <span>Complimentary Shipping</span>
               </div>
               <div className="flex items-center space-x-1.5">
-                <ShieldCheck className="w-4 h-4 text-vasana-gold shrink-0" />
-                <span>Authentic Silk SilkMark</span>
+                <ShieldCheck className="w-4 h-4 text-[#B4975A] shrink-0" />
+                <span>Authentic SilkMark</span>
               </div>
               <div className="flex items-center space-x-1.5">
-                <RotateCcw className="w-4 h-4 text-vasana-gold shrink-0" />
-                <span>7 Days Easy Returns</span>
+                <RotateCcw className="w-4 h-4 text-[#B4975A] shrink-0" />
+                <span>7 Days Returns</span>
               </div>
             </div>
 
@@ -301,16 +274,16 @@ export default function ProductDetail() {
         </div>
 
         {/* Tabbed Specs, Craft Story & Reviews */}
-        <div className="bg-white border border-vasana-rose/50 p-6 sm:p-10 shadow-sm mb-16">
-          <div className="flex space-x-8 border-b border-vasana-rose/50 pb-4 mb-6 overflow-x-auto no-scrollbar">
+        <div className="bg-white border border-[#EFE7DC] p-6 sm:p-10 shadow-luxury mb-16">
+          <div className="flex space-x-8 border-b border-[#EFE7DC] pb-4 mb-6 overflow-x-auto no-scrollbar">
             {['description', 'craftsmanship', 'care', 'reviews'].map((tab) => (
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
                 className={`font-serif text-lg uppercase tracking-wider transition-colors relative pb-2 ${
                   activeTab === tab
-                    ? 'text-vasana-burgundy font-semibold after:content-[""] after:absolute after:bottom-0 after:left-0 after:w-full after:h-[2px] after:bg-vasana-gold'
-                    : 'text-gray-400 hover:text-vasana-dark'
+                    ? 'text-[#241C18] font-semibold after:content-[""] after:absolute after:bottom-0 after:left-0 after:w-full after:h-[2px] after:bg-[#B4975A]'
+                    : 'text-gray-400 hover:text-[#241C18]'
                 }`}
               >
                 {tab === 'description' && 'Product Details'}
@@ -322,9 +295,9 @@ export default function ProductDetail() {
           </div>
 
           {activeTab === 'description' && (
-            <div className="space-y-4 text-sm font-sans text-gray-700 leading-relaxed max-w-4xl">
+            <div className="space-y-4 text-sm font-sans text-gray-700 leading-relaxed max-w-4xl font-light">
               <p>{product.description}</p>
-              <h4 className="font-serif text-lg text-vasana-dark mt-4">Product Specifications:</h4>
+              <h4 className="font-serif text-lg text-[#241C18] mt-4 font-normal">Product Specifications:</h4>
               <ul className="list-disc pl-5 space-y-1 text-xs">
                 <li><strong>SKU Code:</strong> {product.sku}</li>
                 <li><strong>Occasion:</strong> {product.occasion}</li>
@@ -335,22 +308,17 @@ export default function ProductDetail() {
           )}
 
           {activeTab === 'craftsmanship' && (
-            <div className="space-y-4 text-sm font-sans text-gray-700 leading-relaxed max-w-4xl">
+            <div className="space-y-4 text-sm font-sans text-gray-700 leading-relaxed max-w-4xl font-light">
               <p>{product.craftStory || 'Handcrafted meticulously by hereditary master weavers preserving centuries-old weaving traditions.'}</p>
-              <div className="p-4 bg-vasana-rose/20 border-l-4 border-vasana-gold text-xs font-serif italic text-vasana-dark">
+              <div className="p-4 bg-[#EFE7DC]/50 border-l-4 border-[#B4975A] text-xs font-serif italic text-[#241C18]">
                 "Each VASANA saree undergoes multi-tier quality inspections to guarantee authentic silk purity and zari metal standard."
               </div>
             </div>
           )}
 
           {activeTab === 'care' && (
-            <div className="space-y-3 text-xs font-sans text-gray-700 leading-relaxed max-w-4xl">
+            <div className="space-y-3 text-xs font-sans text-gray-700 leading-relaxed max-w-4xl font-light">
               <p>{product.careInstructions || 'Dry clean only. Store wrapped in clean white muslin cloth to allow silk fiber breathability.'}</p>
-              <ul className="list-disc pl-5 space-y-1">
-                <li>Avoid direct exposure to sunlight for prolonged periods when drying.</li>
-                <li>Never spray perfumes directly onto metallic zari threads.</li>
-                <li>Refold saree every 3 to 4 months to prevent fold creases.</li>
-              </ul>
             </div>
           )}
 
