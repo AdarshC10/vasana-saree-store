@@ -32,7 +32,6 @@ import Register from './pages/Register';
 import VerifyOTP from './pages/VerifyOTP';
 import ForgotPassword from './pages/ForgotPassword';
 import ResetPassword from './pages/ResetPassword';
-import AdminLogin from './pages/AdminLogin';
 
 // Admin Suite Pages
 import AdminDashboard from './pages/admin/AdminDashboard';
@@ -48,9 +47,9 @@ import AdminSettings from './pages/admin/AdminSettings';
 // Protected Admin Route Wrapper (Requires authenticated user with admin role)
 const AdminRoute = ({ children }) => {
   const { user } = useAuth();
-  const isAdminUser = user && (user.role === 'admin' || user.role === 'super_admin');
+  const isAdminUser = user && (user.role === 'admin' || user.role === 'super_admin' || user.isAdmin === true);
   if (!isAdminUser) {
-    return <Navigate to="/admin-login" replace />;
+    return <Navigate to="/login" replace />;
   }
   return children;
 };
@@ -97,9 +96,6 @@ export default function App() {
                     <Route path="/verify-otp" element={<VerifyOTP />} />
                     <Route path="/forgot-password" element={<ForgotPassword />} />
                     <Route path="/reset-password" element={<ResetPassword />} />
-
-                    {/* Restricted Admin Auth Route */}
-                    <Route path="/admin-login" element={<AdminLogin />} />
 
                     <Route path="/account" element={<UserRoute><Account /></UserRoute>} />
 
