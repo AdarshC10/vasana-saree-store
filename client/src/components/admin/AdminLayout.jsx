@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
   ShieldCheck,
@@ -21,7 +21,8 @@ import {
   Menu,
   X,
   ChevronDown,
-  Calendar
+  Calendar,
+  Loader2
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
@@ -36,6 +37,7 @@ export default function AdminLayout({ children }) {
   const [adminDropdownOpen, setAdminDropdownOpen] = useState(false);
   const [dateFilter, setDateFilter] = useState('This Month');
   const [lastRefreshed, setLastRefreshed] = useState('20 Aug 2024, 10:30 AM');
+  const [isPageSwitching, setIsPageSwitching] = useState(false);
 
   const navItems = [
     { name: 'Dashboard', path: '/admin', icon: LayoutDashboard },
@@ -49,11 +51,22 @@ export default function AdminLayout({ children }) {
     { name: 'Settings', path: '/admin/settings', icon: Settings }
   ];
 
+  // Route transition loader feedback
+  useEffect(() => {
+    setIsPageSwitching(true);
+    const timer = setTimeout(() => setIsPageSwitching(false), 200);
+    return () => clearTimeout(timer);
+  }, [location.pathname]);
+
   const handleRefresh = () => {
+    setIsPageSwitching(true);
     const now = new Date();
     const formatted = now.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) + ', ' + now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     setLastRefreshed(formatted);
-    addToast('Dashboard data refreshed.', 'info');
+    setTimeout(() => {
+      setIsPageSwitching(false);
+      addToast('Dashboard data refreshed.', 'info');
+    }, 250);
   };
 
   const isActivePath = (path) => {
@@ -198,8 +211,13 @@ export default function AdminLayout({ children }) {
       )}
 
       {/* MAIN CONTENT AREA */}
-      <div className="flex-1 flex flex-col min-w-0">
+      <div className="flex-1 flex flex-col min-w-0 relative">
         
+        {/* Top Progress Loading Line */}
+        {isPageSwitching && (
+          <div className="absolute top-0 inset-x-0 h-1 bg-[#B8924A] animate-pulse z-50" />
+        )}
+
         {/* TOP HEADER */}
         <header className="bg-white border-b border-[#EFE7DC] px-6 py-4 flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-sm">
           <div>
@@ -286,16 +304,23 @@ export default function AdminLayout({ children }) {
 
           <button
             onClick={handleRefresh}
-            className="inline-flex items-center space-x-1 text-[#B8924A] hover:text-[#1F1A17] font-semibold transition-colors"
+            className="inline-flex items-center space-x-1.5 text-[#B8924A] hover:text-[#1F1A17] font-semibold transition-colors"
           >
-            <RefreshCw className="w-3.5 h-3.5" />
+            <RefreshCw className={`w-3.5 h-3.5 ${isPageSwitching ? 'animate-spin' : ''}`} />
             <span>Refresh Data</span>
           </button>
         </div>
 
         {/* MAIN PAGE BODY */}
         <main className="p-6 sm:p-8 flex-1">
-          {children}
+          {isPageSwitching ? (
+            <div className="py-20 flex flex-col items-center justify-center space-y-3 font-sans text-xs text-gray-500">
+              <Loader2 className="w-8 h-8 text-[#B8924A] animate-spin" />
+              <span>Loading admin dataset...</span>
+            </div>
+          ) : (
+            children
+          )}
         </main>
 
       </div>
