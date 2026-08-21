@@ -105,6 +105,24 @@ export default function Register() {
         };
       }
 
+      // Save registered customer record for client-side persistence & instant login availability
+      const cleanCustomerEmail = formData.email.toLowerCase().trim();
+      const existingCustomers = JSON.parse(localStorage.getItem('vasana_registered_customers') || '[]');
+      const newCustomerRecord = {
+        _id: 'cust_' + Date.now(),
+        fullName: formData.fullName,
+        name: formData.fullName,
+        email: cleanCustomerEmail,
+        phone: formData.phone,
+        password: formData.password,
+        role: 'customer',
+        addresses: [],
+        createdAt: new Date().toISOString()
+      };
+      const updatedCustomers = existingCustomers.filter(c => c.email !== cleanCustomerEmail);
+      updatedCustomers.push(newCustomerRecord);
+      localStorage.setItem('vasana_registered_customers', JSON.stringify(updatedCustomers));
+
       addToast(resData.message || 'OTP sent to your phone number!', 'success');
       
       // Redirect to OTP Verification Screen

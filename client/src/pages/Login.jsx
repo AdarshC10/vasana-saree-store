@@ -49,7 +49,7 @@ export default function Login() {
           return;
         }
 
-        // Direct credential verification for pre-approved Admin & Customer accounts
+        // 1. Check pre-approved Admin Accounts
         if ((cleanEmail === 'admin@vasana.com' && password === 'AdminPassword123!') || (cleanEmail === 'director@vasana.com' && password === 'DirectorPassword123!')) {
           resData = {
             success: true,
@@ -57,23 +57,47 @@ export default function Login() {
               _id: 'admin_master_1',
               name: 'VASANA Master Admin',
               email: cleanEmail,
-              role: 'super_admin'
+              role: 'super_admin',
+              isAdmin: true
             }
           };
-        } else if (cleanEmail === 'customer@example.com' && password === 'customer123') {
-          resData = {
-            success: true,
-            user: {
-              _id: 'cust_demo',
-              name: 'Priya Sundaram',
-              email: cleanEmail,
-              role: 'customer'
+        }
+        // 2. Check registered customer records from registration database
+        else {
+          const registeredCustomers = JSON.parse(localStorage.getItem('vasana_registered_customers') || '[]');
+          const matchedCustomer = registeredCustomers.find(c => c.email.toLowerCase().trim() === cleanEmail);
+
+          if (matchedCustomer) {
+            if (matchedCustomer.password === password) {
+              resData = {
+                success: true,
+                user: {
+                  _id: matchedCustomer._id,
+                  name: matchedCustomer.name || matchedCustomer.fullName,
+                  email: matchedCustomer.email,
+                  phone: matchedCustomer.phone,
+                  role: 'customer',
+                  addresses: matchedCustomer.addresses || []
+                }
+              };
+            } else {
+              throw new Error('Invalid email or password.');
             }
-          };
-        } else if (err.response?.data?.message) {
-          throw new Error(err.response.data.message);
-        } else {
-          throw new Error('Invalid email or password.');
+          } else if (cleanEmail === 'customer@example.com' && password === 'customer123') {
+            resData = {
+              success: true,
+              user: {
+                _id: 'cust_demo',
+                name: 'Priya Sundaram',
+                email: cleanEmail,
+                role: 'customer'
+              }
+            };
+          } else if (err.response?.data?.message) {
+            throw new Error(err.response.data.message);
+          } else {
+            throw new Error('No account found. Please register first.');
+          }
         }
       }
 
