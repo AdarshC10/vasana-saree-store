@@ -11,7 +11,7 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 const JWT_SECRET = process.env.JWT_SECRET || 'vasana_secret_key_luxury_fashion_2026_jwt_token_auth';
-const BCRYPT_SALT_ROUNDS = Number(process.env.BCRYPT_SALT_ROUNDS) || 10;
+const BCRYPT_SALT_ROUNDS = 12;
 
 /**
  * Helper to generate a 6-digit numeric OTP
@@ -267,14 +267,40 @@ export const loginCustomer = async (req, res) => {
       });
     }
 
-    // Check password hash for customer
-    const isPasswordMatch = await bcrypt.compare(password, customer.passwordHash);
-    if (!isPasswordMatch) {
-      return res.status(400).json({
+    // 2a. Check if account is currently locked (15-minute lockout)
+    if (customer.lockUntil && customer.lockUntil > new Date()) {
+      const minutesRemaining = Math.ceil((customer.lockUntil - new Date()) / (60 * 1000));
+      return res.status(429).json({
         success: false,
-        message: 'Invalid email or password.'
+        isLocked: true,
+        message: `Account locked due to 5 failed login attempts. Please try again in ${minutesRemaining} minutes.`
       });
     }
+
+    // 2b. Check password hash for customer
+    const isPasswordMatch = await bcrypt.compare(password, customer.passwordHash);
+    if (!isPasswordMatch) {
+      customer.failedLoginAttempts = (customer.failedLoginAttempts || 0) + 1;
+      if (customer.failedLoginAttempts >= 5) {
+        customer.lockUntil = new Date(Date.now() + 15 * 60 * 1000); // 15-minute lockout
+        await customer.save();
+        return res.status(429).json({
+          success: false,
+          isLocked: true,
+          message: 'Account locked due to 5 failed login attempts. Please try again in 15 minutes.'
+        });
+      }
+      await customer.save();
+      return res.status(400).json({
+        success: false,
+        message: `Invalid email or password. (${5 - customer.failedLoginAttempts} attempts remaining before 15-min lockout)`
+      });
+    }
+
+    // Reset failed login attempts on successful authentication
+    customer.failedLoginAttempts = 0;
+    customer.lockUntil = null;
+    await customer.save();
 
     // Check verification status for customer
     if (!customer.isVerified) {
@@ -286,19 +312,32 @@ export const loginCustomer = async (req, res) => {
       });
     }
 
-    // Issue Customer JWT (7 days expiry)
+    // Issue Short-Lived Access Token (15-minute TTL)
     const token = jwt.sign(
       { id: customer._id, role: 'customer', email: customer.email },
+      JWT_SECRET,
+      { expiresIn: '15m' }
+    );
+
+    // Issue Refresh Token (7 days) stored in HttpOnly, Secure, SameSite=Strict cookie
+    const refreshToken = jwt.sign(
+      { id: customer._id, role: 'customer', email: customer.email, isRefresh: true },
       JWT_SECRET,
       { expiresIn: '7d' }
     );
 
-    // Set httpOnly secure cookie
+    res.cookie('refresh_token', refreshToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+      maxAge: 7 * 24 * 60 * 60 * 1000
+    });
+
     res.cookie('customer_token', token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      maxAge: 7 * 24 * 60 * 60 * 1000
+      sameSite: 'strict',
+      maxAge: 15 * 60 * 1000
     });
 
     return res.status(200).json({

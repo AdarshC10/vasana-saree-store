@@ -35,6 +35,13 @@ const customerSchema = new mongoose.Schema({
     enum: ['customer'],
     default: 'customer'
   },
+  failedLoginAttempts: {
+    type: Number,
+    default: 0
+  },
+  lockUntil: {
+    type: Date
+  },
   addresses: [{
     fullName: String,
     phone: String,
