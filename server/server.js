@@ -1,6 +1,7 @@
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
+import mongoSanitize from 'express-mongo-sanitize';
 import morgan from 'morgan';
 import dotenv from 'dotenv';
 import { connectDB } from './config/db.js';
@@ -19,14 +20,53 @@ dotenv.config();
 
 const app = express();
 
-// Security Hardening Middleware
-app.use(helmet({ contentSecurityPolicy: false }));
-app.use(cors({
-  origin: '*',
-  credentials: true
+// 1. Strict Helmet HTTP Security Headers (HSTS, Clickjacking protection, CSP)
+app.use(helmet({
+  hsts: {
+    maxAge: 31536000, // 1 year
+    includeSubDomains: true,
+    preload: true
+  },
+  frameguard: {
+    action: 'deny' // Clickjacking protection
+  },
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      scriptSrc: ["'self'", "'unsafe-inline'", 'https://checkout.razorpay.com'],
+      styleSrc: ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com'],
+      imgSrc: ["'self'", 'data:', 'https:', 'blob:'],
+      connectSrc: ["'self'", 'https://api.razorpay.com', 'https://images.unsplash.com'],
+      fontSrc: ["'self'", 'https://fonts.gstatic.com'],
+      objectSrc: ["'none'"]
+    }
+  }
 }));
 
-app.use(express.json());
+// 2. Restricted Domain CORS Policy
+const allowedOrigins = [
+  'https://vasana-saree-store.vercel.app',
+  'http://localhost:5173',
+  'http://localhost:3000',
+  'http://127.0.0.1:5173'
+];
+
+app.use(cors({
+  origin: function (origin, callback) {
+    if (!origin || allowedOrigins.includes(origin) || process.env.NODE_ENV !== 'production') {
+      callback(null, true);
+    } else {
+      callback(new Error('CORS Policy: Access denied from unauthorized origin.'));
+    }
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
+}));
+
+// 3. NoSQL Injection Prevention (Strips $ and . from req.body, req.query, req.params)
+app.use(express.json({ limit: '1mb' }));
+app.use(mongoSanitize({ replaceWith: '_' }));
 app.use(morgan('dev'));
 
 // Connect DB
