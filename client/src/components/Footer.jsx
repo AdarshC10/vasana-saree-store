@@ -124,6 +124,7 @@ export default function Footer() {
           <div className="flex space-x-4">
             <Link to="/contact" className="hover:text-white">Privacy Policy</Link>
             <Link to="/contact" className="hover:text-white">Terms of Service</Link>
+            <Link to="/admin-login" className="hover:text-[#B4975A] text-[#B4975A]/80 font-medium">Atelier Admin Portal</Link>
           </div>
         </div>
 
