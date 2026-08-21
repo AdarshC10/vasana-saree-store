@@ -1,19 +1,18 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import ProductCard from '../components/ProductCard';
 import QuickViewModal from '../components/QuickViewModal';
 import api from '../services/api';
 import { fallbackProducts } from '../utils/fallbackData';
-import { SlidersHorizontal, X, Search } from 'lucide-react';
+import { SlidersHorizontal, X, Search, RotateCcw } from 'lucide-react';
 
 const categories = ['Banarasi', 'Kanjeevaram', 'Chanderi', 'Organza', 'Linen', 'Georgette', 'Tussar Silk', 'Velvet', 'Handloom Cotton'];
 const occasions = ['Wedding', 'Festive', 'Everyday', 'Party', 'Bridal', 'Formal'];
 
 export default function Shop() {
   const [searchParams, setSearchParams] = useSearchParams();
-  const [products, setProducts] = useState(fallbackProducts);
+  const [rawProducts, setRawProducts] = useState(fallbackProducts);
   const [loading, setLoading] = useState(false);
-  const [total, setTotal] = useState(fallbackProducts.length);
 
   // Filters State
   const [selectedCategory, setSelectedCategory] = useState(searchParams.get('category') || '');
@@ -28,65 +27,67 @@ export default function Shop() {
 
   useEffect(() => {
     fetchProducts();
-  }, [searchParams, sort]);
+  }, []);
 
   const fetchProducts = async () => {
     setLoading(true);
     try {
-      const params = new URLSearchParams();
-      params.append('limit', 30);
-      params.append('sort', sort);
-
-      if (selectedCategory) params.append('category', selectedCategory);
-      if (selectedOccasion) params.append('occasion', selectedOccasion);
-      if (selectedCollection) params.append('collection', selectedCollection);
-      if (searchQuery) params.append('search', searchQuery);
-
-      const res = await api.get(`/products?${params.toString()}`);
+      const res = await api.get('/products?limit=50');
       if (Array.isArray(res.data?.products) && res.data.products.length > 0) {
-        setProducts(res.data.products);
-        setTotal(res.data.total || res.data.products.length);
+        setRawProducts(res.data.products);
       } else {
-        applyFallbackFilter();
+        setRawProducts(fallbackProducts);
       }
     } catch (error) {
-      applyFallbackFilter();
+      setRawProducts(fallbackProducts);
     } finally {
       setLoading(false);
     }
   };
 
-  const applyFallbackFilter = () => {
-    let filtered = [...fallbackProducts];
-    if (selectedCategory) filtered = filtered.filter(p => p.category === selectedCategory);
-    if (selectedOccasion) filtered = filtered.filter(p => p.occasion === selectedOccasion);
-    if (selectedCollection) filtered = filtered.filter(p => p.collectionType === selectedCollection);
+  // Live Reactive Filtered Products (recalculates immediately when maxPrice or any filter moves)
+  const filteredProducts = useMemo(() => {
+    let list = [...rawProducts];
+
+    if (selectedCategory) {
+      list = list.filter(p => p.category?.toLowerCase() === selectedCategory.toLowerCase());
+    }
+
+    if (selectedOccasion) {
+      list = list.filter(p => p.occasion?.toLowerCase() === selectedOccasion.toLowerCase());
+    }
+
+    if (selectedCollection) {
+      list = list.filter(p => p.collectionType?.toLowerCase() === selectedCollection.toLowerCase());
+    }
+
     if (searchQuery) {
       const q = searchQuery.toLowerCase();
-      filtered = filtered.filter(p => p.name.toLowerCase().includes(q) || p.category.toLowerCase().includes(q) || p.fabric.toLowerCase().includes(q));
+      list = list.filter(p =>
+        p.name?.toLowerCase().includes(q) ||
+        p.category?.toLowerCase().includes(q) ||
+        (p.fabric && p.fabric.toLowerCase().includes(q))
+      );
     }
-    if (maxPrice) filtered = filtered.filter(p => p.price <= Number(maxPrice));
-    
-    if (sort === 'price-low') filtered.sort((a,b) => a.price - b.price);
-    if (sort === 'price-high') filtered.sort((a,b) => b.price - a.price);
-    if (sort === 'rating') filtered.sort((a,b) => b.rating - a.rating);
 
-    setProducts(filtered);
-    setTotal(filtered.length);
-  };
+    if (maxPrice) {
+      const limit = Number(maxPrice);
+      list = list.filter(p => {
+        const itemPrice = p.discount ? Math.round((p.originalPrice || p.price) * (1 - p.discount / 100)) : p.price;
+        return itemPrice <= limit;
+      });
+    }
 
-  const applyFilters = () => {
-    const params = new URLSearchParams();
-    if (selectedCategory) params.set('category', selectedCategory);
-    if (selectedOccasion) params.set('occasion', selectedOccasion);
-    if (selectedCollection) params.set('collection', selectedCollection);
-    if (searchQuery) params.set('search', searchQuery);
-    if (maxPrice && maxPrice !== '50000') params.set('maxPrice', maxPrice);
-    if (sort) params.set('sort', sort);
-    
-    setSearchParams(params);
-    setMobileFilterOpen(false);
-  };
+    if (sort === 'price-low') {
+      list.sort((a, b) => a.price - b.price);
+    } else if (sort === 'price-high') {
+      list.sort((a, b) => b.price - a.price);
+    } else if (sort === 'rating') {
+      list.sort((a, b) => (b.rating || 4.5) - (a.rating || 4.5));
+    }
+
+    return list;
+  }, [rawProducts, selectedCategory, selectedOccasion, selectedCollection, searchQuery, maxPrice, sort]);
 
   const clearAllFilters = () => {
     setSelectedCategory('');
@@ -111,7 +112,7 @@ export default function Shop() {
             Handcrafted Saree Collection
           </h1>
           <p className="text-xs font-sans text-gray-500 font-light mt-2">
-            Showing {total} heirloom pieces woven by hereditary master artisans
+            Showing {filteredProducts.length} heirloom pieces woven by hereditary master artisans
           </p>
           <div className="w-12 h-[1px] bg-[#B4975A] mx-auto mt-4" />
         </div>
@@ -120,7 +121,7 @@ export default function Shop() {
         <div className="flex flex-col sm:flex-row items-center justify-between border-y border-[#EFE7DC] py-4 gap-4">
           <button
             onClick={() => setMobileFilterOpen(true)}
-            className="lg:hidden w-full sm:w-auto py-2.5 px-4 border border-[#B4975A] text-[#241C18] text-xs font-sans font-bold tracking-widest uppercase flex items-center justify-center space-x-2"
+            className="lg:hidden w-full sm:w-auto py-2.5 px-4 border border-[#B4975A] text-[#241C18] text-xs font-sans font-bold tracking-widest uppercase flex items-center justify-center space-x-2 shadow-sm"
           >
             <SlidersHorizontal className="w-4 h-4 text-[#B4975A]" />
             <span>FILTER SAREES</span>
@@ -129,19 +130,25 @@ export default function Shop() {
           <div className="hidden lg:flex flex-wrap gap-2 items-center text-xs font-sans">
             <span className="text-gray-400 uppercase font-semibold text-[10px]">Active Filters:</span>
             {selectedCategory && (
-              <span className="bg-[#EFE7DC] text-[#241C18] px-2.5 py-1 flex items-center space-x-1">
+              <span className="bg-[#EFE7DC] text-[#241C18] px-2.5 py-1 flex items-center space-x-1 rounded">
                 <span>Category: {selectedCategory}</span>
-                <X className="w-3 h-3 cursor-pointer" onClick={() => { setSelectedCategory(''); applyFilters(); }} />
+                <X className="w-3 h-3 cursor-pointer" onClick={() => setSelectedCategory('')} />
               </span>
             )}
             {selectedOccasion && (
-              <span className="bg-[#EFE7DC] text-[#241C18] px-2.5 py-1 flex items-center space-x-1">
+              <span className="bg-[#EFE7DC] text-[#241C18] px-2.5 py-1 flex items-center space-x-1 rounded">
                 <span>Occasion: {selectedOccasion}</span>
-                <X className="w-3 h-3 cursor-pointer" onClick={() => { setSelectedOccasion(''); applyFilters(); }} />
+                <X className="w-3 h-3 cursor-pointer" onClick={() => setSelectedOccasion('')} />
               </span>
             )}
-            {(selectedCategory || selectedOccasion || searchQuery) && (
-              <button onClick={clearAllFilters} className="text-xs text-[#B4975A] hover:underline font-medium ml-2">
+            {maxPrice !== '50000' && (
+              <span className="bg-[#EFE7DC] text-[#241C18] px-2.5 py-1 flex items-center space-x-1 rounded">
+                <span>Max Price: ≤ ₹{Number(maxPrice).toLocaleString('en-IN')}</span>
+                <X className="w-3 h-3 cursor-pointer" onClick={() => setMaxPrice('50000')} />
+              </span>
+            )}
+            {(selectedCategory || selectedOccasion || searchQuery || maxPrice !== '50000') && (
+              <button onClick={clearAllFilters} className="text-xs text-[#B4975A] hover:underline font-semibold ml-2">
                 Clear All
               </button>
             )}
@@ -152,7 +159,7 @@ export default function Shop() {
             <select
               value={sort}
               onChange={(e) => setSort(e.target.value)}
-              className="bg-white border border-[#EFE7DC] py-2 px-3 text-xs font-sans focus:outline-none focus:border-[#B4975A] text-[#241C18]"
+              className="bg-white border border-[#EFE7DC] py-2 px-3 text-xs font-sans focus:outline-none focus:border-[#B4975A] text-[#241C18] shadow-sm rounded"
             >
               <option value="newest">Newest Arrivals</option>
               <option value="price-low">Price: Low to High</option>
@@ -169,7 +176,7 @@ export default function Shop() {
           <div className="hidden lg:block space-y-6 pr-4 border-r border-[#EFE7DC]">
             <div className="flex items-center justify-between pb-4 border-b border-[#EFE7DC]">
               <h3 className="font-serif text-xl font-light text-[#241C18]">Filter By</h3>
-              <button onClick={clearAllFilters} className="text-xs text-[#B4975A] hover:underline font-sans">Reset</button>
+              <button onClick={clearAllFilters} className="text-xs text-[#B4975A] hover:underline font-sans font-semibold">Reset All</button>
             </div>
 
             {/* Keyword Search */}
@@ -180,20 +187,48 @@ export default function Shop() {
                   type="text"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && applyFilters()}
                   placeholder="e.g. Silk, Banarasi, Zari..."
-                  className="w-full bg-white border border-[#EFE7DC] py-2 px-3 pr-8 text-xs focus:outline-none focus:border-[#B4975A]"
+                  className="w-full bg-white border border-[#EFE7DC] py-2 px-3 pr-8 text-xs focus:outline-none focus:border-[#B4975A] rounded"
                 />
-                <button onClick={applyFilters} className="absolute right-2 top-2 text-[#B4975A]">
-                  <Search className="w-4 h-4" />
-                </button>
+                <Search className="w-4 h-4 text-[#B4975A] absolute right-2.5 top-2.5" />
               </div>
             </div>
 
-            {/* Category */}
+            {/* LIVE DYNAMIC MAX PRICE FILTER SLIDER */}
+            <div className="p-4 bg-white border border-[#EFE7DC] rounded-lg shadow-sm space-y-3">
+              <div className="flex justify-between items-center text-xs font-sans">
+                <span className="font-bold uppercase tracking-wider text-[#241C18]">MAX PRICE</span>
+                <strong className="font-sans text-base text-[#B4975A]">₹{Number(maxPrice).toLocaleString('en-IN')}</strong>
+              </div>
+              <input
+                type="range"
+                min="1800"
+                max="50000"
+                step="500"
+                value={maxPrice}
+                onChange={(e) => setMaxPrice(e.target.value)}
+                className="w-full accent-[#B4975A] cursor-pointer"
+              />
+              <div className="flex justify-between text-[10px] font-sans text-gray-400 font-medium">
+                <span>₹1,800</span>
+                <span>₹50,000</span>
+              </div>
+            </div>
+
+            {/* Category Filter */}
             <div>
               <label className="text-xs font-sans font-bold uppercase tracking-wider text-[#241C18] block mb-2">Category</label>
               <div className="space-y-2 max-h-48 overflow-y-auto pr-2 text-xs font-sans">
+                <label className="flex items-center space-x-2 cursor-pointer hover:text-[#B4975A]">
+                  <input
+                    type="radio"
+                    name="category"
+                    checked={selectedCategory === ''}
+                    onChange={() => setSelectedCategory('')}
+                    className="accent-[#241C18]"
+                  />
+                  <span className="font-semibold">All Categories</span>
+                </label>
                 {categories.map((cat) => (
                   <label key={cat} className="flex items-center space-x-2 cursor-pointer hover:text-[#B4975A]">
                     <input
@@ -209,10 +244,20 @@ export default function Shop() {
               </div>
             </div>
 
-            {/* Occasion */}
+            {/* Occasion Filter */}
             <div>
               <label className="text-xs font-sans font-bold uppercase tracking-wider text-[#241C18] block mb-2">Occasion</label>
               <div className="space-y-2 text-xs font-sans">
+                <label className="flex items-center space-x-2 cursor-pointer hover:text-[#B4975A]">
+                  <input
+                    type="radio"
+                    name="occasion"
+                    checked={selectedOccasion === ''}
+                    onChange={() => setSelectedOccasion('')}
+                    className="accent-[#241C18]"
+                  />
+                  <span className="font-semibold">All Occasions</span>
+                </label>
                 {occasions.map((occ) => (
                   <label key={occ} className="flex items-center space-x-2 cursor-pointer hover:text-[#B4975A]">
                     <input
@@ -228,44 +273,28 @@ export default function Shop() {
               </div>
             </div>
 
-            {/* Price Filter */}
-            <div>
-              <div className="flex justify-between items-center text-xs font-sans mb-2">
-                <span className="font-bold uppercase tracking-wider text-[#241C18]">Max Price</span>
-                <span className="font-bold text-[#B4975A]">₹{Number(maxPrice).toLocaleString('en-IN')}</span>
-              </div>
-              <input
-                type="range"
-                min="1800"
-                max="50000"
-                step="2500"
-                value={maxPrice}
-                onChange={(e) => setMaxPrice(e.target.value)}
-                className="w-full accent-[#B4975A]"
-              />
-            </div>
-
             <button
-              onClick={applyFilters}
-              className="w-full py-3 bg-[#241C18] hover:bg-[#322722] text-white text-xs font-sans font-bold tracking-widest uppercase transition-colors"
+              onClick={clearAllFilters}
+              className="w-full py-3 bg-[#241C18] hover:bg-[#322722] text-white text-xs font-sans font-bold tracking-widest uppercase transition-colors flex items-center justify-center space-x-2 rounded shadow-sm"
             >
-              APPLY FILTERS
+              <RotateCcw className="w-3.5 h-3.5 text-[#B4975A]" />
+              <span>RESET ALL FILTERS</span>
             </button>
           </div>
 
           {/* Product Listing Grid */}
           <div className="lg:col-span-3">
-            {products.length === 0 ? (
-              <div className="text-center py-20 bg-white border border-[#EFE7DC] p-8 space-y-4">
-                <h3 className="font-serif text-3xl font-light text-[#241C18]">NO SAREES FOUND</h3>
-                <p className="text-xs font-sans text-gray-500 max-w-sm mx-auto">We couldn't find any sarees matching your selected filter criteria.</p>
-                <button onClick={clearAllFilters} className="px-6 py-3 bg-[#B4975A] text-[#241C18] text-xs font-sans font-bold tracking-widest uppercase">
-                  RESET ALL FILTERS
+            {filteredProducts.length === 0 ? (
+              <div className="text-center py-20 bg-white border border-[#EFE7DC] p-8 space-y-4 rounded-xl shadow-sm">
+                <h3 className="font-serif text-3xl font-light text-[#241C18]">NO SAREES UNDER ₹{Number(maxPrice).toLocaleString('en-IN')}</h3>
+                <p className="text-xs font-sans text-gray-500 max-w-sm mx-auto">Try adjusting the Max Price range slider or clear active category filters to see more sarees.</p>
+                <button onClick={clearAllFilters} className="px-6 py-3 bg-[#B4975A] text-[#241C18] text-xs font-sans font-bold tracking-widest uppercase rounded shadow-luxury">
+                  RESET PRICE & FILTERS
                 </button>
               </div>
             ) : (
               <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6">
-                {products.map((prod) => (
+                {filteredProducts.map((prod) => (
                   <ProductCard key={prod._id} product={prod} onQuickView={(p) => setSelectedQuickView(p)} />
                 ))}
               </div>
@@ -280,15 +309,36 @@ export default function Shop() {
       {mobileFilterOpen && (
         <div className="fixed inset-0 z-50 flex flex-col justify-end lg:hidden">
           <div className="fixed inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setMobileFilterOpen(false)} />
-          <div className="relative bg-[#F7F3ED] p-6 max-h-[85vh] overflow-y-auto z-10 space-y-6 text-[#29231F]">
+          <div className="relative bg-[#F7F3ED] p-6 max-h-[85vh] overflow-y-auto z-10 space-y-6 text-[#29231F] rounded-t-2xl shadow-2xl">
             <div className="flex items-center justify-between border-b border-[#EFE7DC] pb-4">
               <h3 className="font-serif text-2xl font-light text-[#241C18]">Filter Sarees</h3>
               <button onClick={() => setMobileFilterOpen(false)}><X className="w-6 h-6" /></button>
             </div>
             
+            {/* Mobile Max Price Slider */}
+            <div className="p-4 bg-white border border-[#EFE7DC] rounded-lg space-y-3">
+              <div className="flex justify-between items-center text-xs font-sans">
+                <span className="font-bold uppercase tracking-wider text-[#241C18]">MAX PRICE</span>
+                <strong className="font-sans text-base text-[#B4975A]">₹{Number(maxPrice).toLocaleString('en-IN')}</strong>
+              </div>
+              <input
+                type="range"
+                min="1800"
+                max="50000"
+                step="500"
+                value={maxPrice}
+                onChange={(e) => setMaxPrice(e.target.value)}
+                className="w-full accent-[#B4975A]"
+              />
+              <div className="flex justify-between text-[10px] text-gray-400 font-medium">
+                <span>₹1,800</span>
+                <span>₹50,000</span>
+              </div>
+            </div>
+
             <div>
               <label className="text-xs font-bold uppercase tracking-wider block mb-2">Category</label>
-              <select value={selectedCategory} onChange={(e) => setSelectedCategory(e.target.value)} className="w-full p-2.5 bg-white border border-[#EFE7DC] text-xs">
+              <select value={selectedCategory} onChange={(e) => setSelectedCategory(e.target.value)} className="w-full p-2.5 bg-white border border-[#EFE7DC] text-xs rounded">
                 <option value="">All Categories</option>
                 {categories.map((c) => <option key={c} value={c}>{c}</option>)}
               </select>
@@ -296,15 +346,15 @@ export default function Shop() {
 
             <div>
               <label className="text-xs font-bold uppercase tracking-wider block mb-2">Occasion</label>
-              <select value={selectedOccasion} onChange={(e) => setSelectedOccasion(e.target.value)} className="w-full p-2.5 bg-white border border-[#EFE7DC] text-xs">
+              <select value={selectedOccasion} onChange={(e) => setSelectedOccasion(e.target.value)} className="w-full p-2.5 bg-white border border-[#EFE7DC] text-xs rounded">
                 <option value="">All Occasions</option>
                 {occasions.map((o) => <option key={o} value={o}>{o}</option>)}
               </select>
             </div>
 
-            <div className="flex space-x-3 pt-4">
-              <button onClick={clearAllFilters} className="flex-1 py-3 border border-[#241C18] text-xs font-bold uppercase">Reset</button>
-              <button onClick={applyFilters} className="flex-1 py-3 bg-[#241C18] text-white text-xs font-bold uppercase">Apply Filters</button>
+            <div className="flex space-x-3 pt-4 border-t border-[#EFE7DC]">
+              <button onClick={clearAllFilters} className="flex-1 py-3 border border-[#241C18] text-xs font-bold uppercase rounded">Reset All</button>
+              <button onClick={() => setMobileFilterOpen(false)} className="flex-1 py-3 bg-[#241C18] text-white text-xs font-bold uppercase rounded">Done</button>
             </div>
           </div>
         </div>
