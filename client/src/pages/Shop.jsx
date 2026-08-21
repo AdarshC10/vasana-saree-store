@@ -73,7 +73,7 @@ export default function Shop() {
     if (maxPrice) {
       const limit = Number(maxPrice);
       list = list.filter(p => {
-        const itemPrice = p.discount ? Math.round((p.originalPrice || p.price) * (1 - p.discount / 100)) : p.price;
+        const itemPrice = p.price;
         return itemPrice <= limit;
       });
     }
@@ -194,7 +194,7 @@ export default function Shop() {
               </div>
             </div>
 
-            {/* LIVE DYNAMIC MAX PRICE FILTER SLIDER */}
+            {/* LIVE DYNAMIC MAX PRICE FILTER SLIDER (min: 1000 so ₹1,701 & ₹1,450 sarees show up at ₹1,800 max) */}
             <div className="p-4 bg-white border border-[#EFE7DC] rounded-lg shadow-sm space-y-3">
               <div className="flex justify-between items-center text-xs font-sans">
                 <span className="font-bold uppercase tracking-wider text-[#241C18]">MAX PRICE</span>
@@ -202,15 +202,15 @@ export default function Shop() {
               </div>
               <input
                 type="range"
-                min="1800"
+                min="1000"
                 max="50000"
-                step="500"
+                step="100"
                 value={maxPrice}
                 onChange={(e) => setMaxPrice(e.target.value)}
                 className="w-full accent-[#B4975A] cursor-pointer"
               />
               <div className="flex justify-between text-[10px] font-sans text-gray-400 font-medium">
-                <span>₹1,800</span>
+                <span>₹1,000</span>
                 <span>₹50,000</span>
               </div>
             </div>
@@ -323,15 +323,15 @@ export default function Shop() {
               </div>
               <input
                 type="range"
-                min="1800"
+                min="1000"
                 max="50000"
-                step="500"
+                step="100"
                 value={maxPrice}
                 onChange={(e) => setMaxPrice(e.target.value)}
                 className="w-full accent-[#B4975A]"
               />
               <div className="flex justify-between text-[10px] text-gray-400 font-medium">
-                <span>₹1,800</span>
+                <span>₹1,000</span>
                 <span>₹50,000</span>
               </div>
             </div>
