@@ -147,6 +147,7 @@ export const AuthProvider = ({ children }) => {
     setUser(null);
     localStorage.removeItem('vasana_user');
     addToast('You have been signed out.', 'info');
+    window.location.href = '/';
   };
 
   const updateProfile = async (profileData) => {

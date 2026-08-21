@@ -19,9 +19,9 @@ export default function Login() {
     try {
       const user = await login(email, password);
       if (user.role === 'admin') {
-        navigate('/admin', { replace: true });
+        window.location.href = '/admin';
       } else {
-        navigate('/account', { replace: true });
+        window.location.href = '/account';
       }
     } catch (error) {
     } finally {
