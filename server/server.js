@@ -9,6 +9,7 @@ import orderRoutes from './routes/orderRoutes.js';
 import reviewRoutes from './routes/reviewRoutes.js';
 import blogRoutes from './routes/blogRoutes.js';
 import adminRoutes from './routes/adminRoutes.js';
+import chatRoutes from './routes/chatRoutes.js';
 import { errorHandler } from './middleware/errorHandler.js';
 
 dotenv.config();
@@ -33,10 +34,11 @@ app.use('/api/orders', orderRoutes);
 app.use('/api/reviews', reviewRoutes);
 app.use('/api/blogs', blogRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/chat', chatRoutes);
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {
-  res.json({ status: 'ok', brand: 'VASANA', time: new Date().toISOString() });
+  res.json({ status: 'ok', brand: 'VASANA AI', time: new Date().toISOString() });
 });
 
 // Centralized error handler
