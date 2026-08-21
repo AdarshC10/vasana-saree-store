@@ -4,15 +4,20 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>VASANA | Woven for your moments - Luxury Indian Sarees & Ethnic Fashion</title>
+    <title>VASANA | Woven for your moments - Luxury Indian Sarees</title>
     
-    <!-- Google Fonts -->
+    <!-- Asynchronous Google Fonts for Instant First Paint -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=Inter:wght@300;400;500;600;700&family=Manrope:wght@300;400;500;600&family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=Inter:wght@300;400;500;600;700&family=Manrope:wght@300;400;500;600&family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
   </head>
   <body class="bg-vasana-bg text-vasana-dark antialiased font-sans selection:bg-vasana-burgundy selection:text-white overflow-x-hidden">
-    <div id="root"></div>
+    <div id="root">
+      <div style="height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;background-color:#F7F4EE;color:#1F1A17;font-family:serif;">
+        <span style="font-size:28px;letter-spacing:0.25em;text-transform:uppercase;font-weight:700;">VASANA</span>
+        <span style="font-size:9px;color:#B8924A;letter-spacing:0.35em;text-transform:uppercase;font-family:sans-serif;margin-top:6px;font-weight:600;">Woven for your moments</span>
+      </div>
+    </div>
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>
