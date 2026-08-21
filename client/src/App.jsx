@@ -5,10 +5,11 @@ import { CartProvider } from './context/CartContext';
 import { WishlistProvider } from './context/WishlistContext';
 import { ToastProvider } from './context/ToastContext';
 
-// Layout Components
+// Layout Components & Scroll Handler
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
 import CartDrawer from './components/CartDrawer';
+import ScrollToTop from './components/ScrollToTop';
 
 // Storefront Pages
 import Home from './pages/Home';
@@ -27,7 +28,7 @@ import Account from './pages/Account';
 import Login from './pages/Login';
 import Register from './pages/Register';
 
-// Admin Suite Pages (Direct synchronous imports for 0ms reliable page loading)
+// Admin Suite Pages
 import AdminDashboard from './pages/admin/AdminDashboard';
 import AdminOrders from './pages/admin/AdminOrders';
 import AdminProducts from './pages/admin/AdminProducts';
@@ -63,6 +64,7 @@ export default function App() {
         <CartProvider>
           <WishlistProvider>
             <Router>
+              <ScrollToTop />
               <div className="flex flex-col min-h-screen">
                 <Navbar />
                 <CartDrawer />
