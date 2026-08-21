@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { CheckCircle2, Package, Truck, ShieldCheck, ArrowRight, Printer, CreditCard, Clock, Check } from 'lucide-react';
+import { CheckCircle2, Package, Truck, ShieldCheck, ArrowRight, Printer, CreditCard, Check, FileText } from 'lucide-react';
 import api from '../services/api';
+import TaxInvoiceModal from '../components/TaxInvoiceModal';
 
 export default function OrderSuccess() {
   const { id } = useParams();
   const [order, setOrder] = useState(null);
+  const [showInvoiceModal, setShowInvoiceModal] = useState(false);
 
   useEffect(() => {
     try {
@@ -24,9 +26,8 @@ export default function OrderSuccess() {
   }, [id]);
 
   const trackingCode = order?.trackingCode || 'VSN-784920';
-  const paymentMethod = order?.payment?.method || order?.paymentMethod || 'Razorpay / UPI';
+  const paymentMethod = order?.payment?.method || order?.paymentMethod || 'Razorpay / GPay UPI';
   const isCOD = paymentMethod === 'COD' || String(paymentMethod).includes('COD');
-  const paymentStatusText = isCOD ? 'Cash on Delivery (Pending at Doorstep)' : 'Paid & Confirmed';
   const totalPaidAmount = order?.totalAmount || order?.total || 31499;
 
   return (
@@ -131,12 +132,21 @@ export default function OrderSuccess() {
           {/* Action Buttons */}
           <div className="pt-6 flex flex-col sm:flex-row items-center justify-center gap-4">
             <button
-              onClick={() => window.print()}
+              onClick={() => setShowInvoiceModal(true)}
               className="w-full sm:w-auto px-6 py-3 border border-[#B8924A] text-[#1F1A17] text-xs font-sans font-bold tracking-widest uppercase hover:bg-[#B8924A] hover:text-white transition-colors flex items-center justify-center space-x-2 rounded-lg"
+            >
+              <FileText className="w-4 h-4 text-[#B8924A]" />
+              <span>VIEW OFFICIAL TAX INVOICE</span>
+            </button>
+
+            <button
+              onClick={() => setShowInvoiceModal(true)}
+              className="w-full sm:w-auto px-6 py-3 border border-gray-300 text-gray-700 text-xs font-sans font-bold tracking-widest uppercase hover:bg-gray-100 transition-colors flex items-center justify-center space-x-2 rounded-lg"
             >
               <Printer className="w-4 h-4" />
               <span>PRINT RECEIPT</span>
             </button>
+
             <Link
               to="/account"
               className="w-full sm:w-auto px-6 py-3 bg-[#1F1A17] text-white text-xs font-sans font-bold tracking-widest uppercase hover:bg-[#2B231E] transition-colors flex items-center justify-center space-x-2 shadow-luxury rounded-lg"
@@ -148,6 +158,14 @@ export default function OrderSuccess() {
         </div>
 
       </div>
+
+      {/* Official Printable Tax Invoice Modal */}
+      {showInvoiceModal && (
+        <TaxInvoiceModal
+          order={order || { _id: id, totalAmount: 31499, payment: { method: 'GPay / UPI' } }}
+          onClose={() => setShowInvoiceModal(false)}
+        />
+      )}
     </div>
   );
 }

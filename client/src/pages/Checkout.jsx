@@ -5,7 +5,7 @@ import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import api from '../services/api';
-import { fallbackOrders } from '../utils/fallbackData';
+import PaymentGatewayModal from '../components/PaymentGatewayModal';
 
 export default function Checkout() {
   const { cart, subtotal, discountAmount, shippingFee, taxAmount, grandTotal, clearCart } = useCart();
@@ -33,12 +33,13 @@ export default function Checkout() {
   const [paymentMethod, setPaymentMethod] = useState('Razorpay');
 
   const [loading, setLoading] = useState(false);
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
 
   if (cart.length === 0) {
     return (
-      <div className="min-h-screen bg-vasana-bg pt-32 text-center p-8">
-        <h2 className="font-serif text-3xl text-vasana-dark mb-4">Your Bag is Empty</h2>
-        <Link to="/shop" className="px-6 py-3 bg-vasana-burgundy text-white text-xs font-sans font-bold tracking-widest uppercase">
+      <div className="min-h-screen bg-[#F7F4EE] pt-32 text-center p-8 font-sans">
+        <h2 className="font-serif text-3xl text-[#1F1A17] mb-4">Your Shopping Bag is Empty</h2>
+        <Link to="/shop" className="px-6 py-3 bg-[#1F1A17] text-white text-xs font-sans font-bold tracking-widest uppercase rounded">
           Return to Shop
         </Link>
       </div>
@@ -54,35 +55,20 @@ export default function Checkout() {
     setStep(2);
   };
 
-  const handlePlaceOrder = async () => {
+  const initiatePayment = () => {
+    if (paymentMethod === 'COD') {
+      executeOrderCreation();
+    } else {
+      setShowPaymentModal(true);
+    }
+  };
+
+  const executeOrderCreation = async () => {
     setLoading(true);
     try {
-      const orderPayload = {
-        items: cart.map((item) => ({
-          product: item.product._id,
-          name: item.product.name,
-          image: item.product.images?.[0] || '',
-          price: item.price,
-          quantity: item.quantity
-        })),
-        shippingAddress,
-        paymentMethod,
-        subtotal,
-        discount: Math.round(discountAmount),
-        shippingFee,
-        tax: taxAmount,
-        totalAmount: grandTotal
-      };
+      const orderId = 'VSN-' + Math.floor(1000000 + Math.random() * 9000000);
+      const isCOD = paymentMethod === 'COD';
 
-      let orderId;
-      try {
-        const res = await api.post('/orders', orderPayload);
-        orderId = res.data._id;
-      } catch (e) {
-        orderId = 'VSN-' + Math.floor(1000000 + Math.random() * 9000000);
-      }
-
-      // Save newly created order into vasana_orders localStorage so it immediately appears in Admin suite
       const newOrderObj = {
         _id: orderId,
         user: {
@@ -93,15 +79,21 @@ export default function Checkout() {
           name: item.product.name,
           image: item.product.images?.[0] || '',
           price: item.price,
-          quantity: item.quantity
+          quantity: item.quantity,
+          blouseOption: item.blouseOption || 'Unstitched Standard'
         })),
         shippingAddress: {
+          fullName: shippingAddress.fullName,
           city: shippingAddress.city,
           state: shippingAddress.state,
           street: shippingAddress.street,
           pincode: shippingAddress.pincode
         },
-        payment: { method: paymentMethod },
+        payment: {
+          method: paymentMethod === 'UPI' ? 'GPay / UPI' : paymentMethod,
+          status: isCOD ? 'Cash on Delivery (Pending)' : 'Paid & Confirmed',
+          isPaid: !isCOD
+        },
         totalAmount: grandTotal,
         status: 'Processing',
         createdAt: new Date().toISOString()
@@ -112,7 +104,6 @@ export default function Checkout() {
         localStorage.setItem('vasana_orders', JSON.stringify([newOrderObj, ...existingOrders]));
       } catch (err) {}
 
-      // Save customer record into vasana_customers localStorage so new customer appears in Admin Directory
       try {
         const existingCustomers = JSON.parse(localStorage.getItem('vasana_customers') || '[]');
         const newCustomerObj = {
@@ -128,6 +119,7 @@ export default function Checkout() {
       } catch (err) {}
 
       clearCart();
+      setShowPaymentModal(false);
       addToast('Order placed successfully!', 'success');
       navigate(`/order-success/${orderId}`);
     } catch (error) {
@@ -138,21 +130,21 @@ export default function Checkout() {
   };
 
   return (
-    <div className="min-h-screen bg-vasana-bg pt-28 pb-20 font-sans">
+    <div className="min-h-screen bg-[#F7F4EE] pt-28 pb-20 font-sans text-[#292522]">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         
         {/* Step Indicator Header */}
         <div className="max-w-3xl mx-auto mb-10">
-          <div className="flex items-center justify-between text-xs font-sans font-bold uppercase tracking-widest text-vasana-dark">
-            <span className={step >= 1 ? 'text-vasana-burgundy' : 'text-gray-400'}>01 Address</span>
+          <div className="flex items-center justify-between text-xs font-sans font-bold uppercase tracking-widest text-[#1F1A17]">
+            <span className={step >= 1 ? 'text-[#B8924A]' : 'text-gray-400'}>01 Address</span>
             <span className="text-gray-300">→</span>
-            <span className={step >= 2 ? 'text-vasana-burgundy' : 'text-gray-400'}>02 Delivery</span>
+            <span className={step >= 2 ? 'text-[#B8924A]' : 'text-gray-400'}>02 Delivery</span>
             <span className="text-gray-300">→</span>
-            <span className={step >= 3 ? 'text-vasana-burgundy' : 'text-gray-400'}>03 Payment</span>
+            <span className={step >= 3 ? 'text-[#B8924A]' : 'text-gray-400'}>03 Payment</span>
           </div>
           <div className="w-full bg-gray-200 h-1 mt-3 relative">
             <div
-              className="bg-vasana-burgundy h-1 transition-all duration-500"
+              className="bg-[#B8924A] h-1 transition-all duration-500"
               style={{ width: `${(step / 3) * 100}%` }}
             />
           </div>
@@ -161,14 +153,14 @@ export default function Checkout() {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-start">
           
           {/* Left Checkout Wizard Forms */}
-          <div className="lg:col-span-7 bg-white p-6 sm:p-10 border border-vasana-rose/50 shadow-sm space-y-8">
+          <div className="lg:col-span-7 bg-white p-6 sm:p-10 border border-[#EFE7DC] shadow-sm space-y-8 rounded-xl">
             
             {/* Step 1: Address */}
             {step === 1 && (
               <form onSubmit={handleAddressSubmit} className="space-y-4">
-                <div className="flex items-center space-x-2 border-b border-vasana-rose pb-3">
-                  <MapPin className="w-5 h-5 text-vasana-burgundy" />
-                  <h3 className="font-serif text-2xl text-vasana-dark">Shipping Address</h3>
+                <div className="flex items-center space-x-2 border-b border-[#EFE7DC] pb-3">
+                  <MapPin className="w-5 h-5 text-[#B8924A]" />
+                  <h3 className="font-serif text-2xl text-[#1F1A17]">Shipping Address</h3>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs font-sans">
@@ -179,7 +171,7 @@ export default function Checkout() {
                       required
                       value={shippingAddress.fullName}
                       onChange={(e) => setShippingAddress({ ...shippingAddress, fullName: e.target.value })}
-                      className="w-full p-3 border border-gray-300 focus:border-vasana-gold focus:outline-none"
+                      className="w-full p-3 border border-gray-300 focus:border-[#B8924A] focus:outline-none rounded"
                     />
                   </div>
                   <div>
@@ -189,7 +181,7 @@ export default function Checkout() {
                       required
                       value={shippingAddress.phone}
                       onChange={(e) => setShippingAddress({ ...shippingAddress, phone: e.target.value })}
-                      className="w-full p-3 border border-gray-300 focus:border-vasana-gold focus:outline-none"
+                      className="w-full p-3 border border-gray-300 focus:border-[#B8924A] focus:outline-none rounded"
                     />
                   </div>
                   <div className="sm:col-span-2">
@@ -200,7 +192,7 @@ export default function Checkout() {
                       value={shippingAddress.street}
                       onChange={(e) => setShippingAddress({ ...shippingAddress, street: e.target.value })}
                       placeholder="Apartment, House No., Street"
-                      className="w-full p-3 border border-gray-300 focus:border-vasana-gold focus:outline-none"
+                      className="w-full p-3 border border-gray-300 focus:border-[#B8924A] focus:outline-none rounded"
                     />
                   </div>
                   <div>
@@ -210,7 +202,7 @@ export default function Checkout() {
                       required
                       value={shippingAddress.city}
                       onChange={(e) => setShippingAddress({ ...shippingAddress, city: e.target.value })}
-                      className="w-full p-3 border border-gray-300 focus:border-vasana-gold focus:outline-none"
+                      className="w-full p-3 border border-gray-300 focus:border-[#B8924A] focus:outline-none rounded"
                     />
                   </div>
                   <div>
@@ -220,7 +212,7 @@ export default function Checkout() {
                       required
                       value={shippingAddress.state}
                       onChange={(e) => setShippingAddress({ ...shippingAddress, state: e.target.value })}
-                      className="w-full p-3 border border-gray-300 focus:border-vasana-gold focus:outline-none"
+                      className="w-full p-3 border border-gray-300 focus:border-[#B8924A] focus:outline-none rounded"
                     />
                   </div>
                   <div>
@@ -230,7 +222,7 @@ export default function Checkout() {
                       required
                       value={shippingAddress.pincode}
                       onChange={(e) => setShippingAddress({ ...shippingAddress, pincode: e.target.value })}
-                      className="w-full p-3 border border-gray-300 focus:border-vasana-gold focus:outline-none"
+                      className="w-full p-3 border border-gray-300 focus:border-[#B8924A] focus:outline-none rounded"
                     />
                   </div>
                   <div>
@@ -239,7 +231,7 @@ export default function Checkout() {
                       type="text"
                       disabled
                       value="India"
-                      className="w-full p-3 border border-gray-200 bg-gray-100 text-gray-600"
+                      className="w-full p-3 border border-gray-200 bg-gray-100 text-gray-600 rounded"
                     />
                   </div>
                 </div>
@@ -247,10 +239,10 @@ export default function Checkout() {
                 <div className="pt-6 flex justify-end">
                   <button
                     type="submit"
-                    className="px-8 py-4 bg-vasana-burgundy text-white text-xs font-sans font-bold tracking-widest uppercase hover:bg-vasana-burgundyDark transition-colors flex items-center space-x-2"
+                    className="px-8 py-4 bg-[#1F1A17] text-white text-xs font-sans font-bold tracking-widest uppercase hover:bg-[#2B231E] transition-colors flex items-center space-x-2 rounded-lg"
                   >
                     <span>CONTINUE TO DELIVERY</span>
-                    <ArrowRight className="w-4 h-4 text-vasana-gold" />
+                    <ArrowRight className="w-4 h-4 text-[#B8924A]" />
                   </button>
                 </div>
               </form>
@@ -259,9 +251,9 @@ export default function Checkout() {
             {/* Step 2: Delivery */}
             {step === 2 && (
               <div className="space-y-6">
-                <div className="flex items-center space-x-2 border-b border-vasana-rose pb-3">
-                  <Truck className="w-5 h-5 text-vasana-burgundy" />
-                  <h3 className="font-serif text-2xl text-vasana-dark">Select Delivery Option</h3>
+                <div className="flex items-center space-x-2 border-b border-[#EFE7DC] pb-3">
+                  <Truck className="w-5 h-5 text-[#B8924A]" />
+                  <h3 className="font-serif text-2xl text-[#1F1A17]">Select Delivery Option</h3>
                 </div>
 
                 <div className="space-y-3 text-xs font-sans">
@@ -272,15 +264,15 @@ export default function Checkout() {
                     <div
                       key={del.id}
                       onClick={() => setDeliveryMethod(del.id)}
-                      className={`p-4 border cursor-pointer flex items-center justify-between transition-all ${
-                        deliveryMethod === del.id ? 'border-vasana-burgundy bg-vasana-rose/20' : 'border-gray-300 bg-white'
+                      className={`p-4 border cursor-pointer flex items-center justify-between transition-all rounded-lg ${
+                        deliveryMethod === del.id ? 'border-[#B8924A] bg-[#FAF6F0]' : 'border-gray-300 bg-white'
                       }`}
                     >
                       <div>
-                        <h4 className="font-bold text-vasana-dark text-sm">{del.name}</h4>
+                        <h4 className="font-bold text-[#1F1A17] text-sm">{del.name}</h4>
                         <p className="text-gray-500">{del.desc}</p>
                       </div>
-                      <span className="font-bold text-vasana-burgundy">{del.price}</span>
+                      <span className="font-bold text-[#B8924A]">{del.price}</span>
                     </div>
                   ))}
                 </div>
@@ -288,16 +280,16 @@ export default function Checkout() {
                 <div className="pt-6 flex justify-between">
                   <button
                     onClick={() => setStep(1)}
-                    className="px-6 py-3 border border-gray-300 text-xs font-sans"
+                    className="px-6 py-3 border border-gray-300 text-xs font-sans rounded-lg"
                   >
                     Back to Address
                   </button>
                   <button
                     onClick={() => setStep(3)}
-                    className="px-8 py-4 bg-vasana-burgundy text-white text-xs font-sans font-bold tracking-widest uppercase hover:bg-vasana-burgundyDark transition-colors flex items-center space-x-2"
+                    className="px-8 py-4 bg-[#1F1A17] text-white text-xs font-sans font-bold tracking-widest uppercase hover:bg-[#2B231E] transition-colors flex items-center space-x-2 rounded-lg"
                   >
                     <span>CONTINUE TO PAYMENT</span>
-                    <ArrowRight className="w-4 h-4 text-vasana-gold" />
+                    <ArrowRight className="w-4 h-4 text-[#B8924A]" />
                   </button>
                 </div>
               </div>
@@ -306,27 +298,27 @@ export default function Checkout() {
             {/* Step 3: Payment */}
             {step === 3 && (
               <div className="space-y-6">
-                <div className="flex items-center space-x-2 border-b border-vasana-rose pb-3">
-                  <CreditCard className="w-5 h-5 text-vasana-burgundy" />
-                  <h3 className="font-serif text-2xl text-vasana-dark">Payment Gateway</h3>
+                <div className="flex items-center space-x-2 border-b border-[#EFE7DC] pb-3">
+                  <CreditCard className="w-5 h-5 text-[#B8924A]" />
+                  <h3 className="font-serif text-2xl text-[#1F1A17]">Select Payment Gateway</h3>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs font-sans">
                   {[
-                    { id: 'Razorpay', label: 'Razorpay / Credit / Debit Cards' },
-                    { id: 'UPI', label: 'Instant UPI (Google Pay, PhonePe, Paytm)' },
-                    { id: 'NetBanking', label: 'Net Banking' },
+                    { id: 'UPI', label: 'Google Pay / PhonePe / Paytm UPI' },
+                    { id: 'Razorpay', label: 'Razorpay Credit / Debit Cards' },
+                    { id: 'NetBanking', label: 'Net Banking (HDFC, SBI, ICICI)' },
                     { id: 'COD', label: 'Cash on Delivery (+₹150 fee)' }
                   ].map((pay) => (
                     <div
                       key={pay.id}
                       onClick={() => setPaymentMethod(pay.id)}
-                      className={`p-4 border cursor-pointer flex items-center justify-between transition-all ${
-                        paymentMethod === pay.id ? 'border-vasana-burgundy bg-vasana-rose/30 font-semibold' : 'border-gray-300 bg-white'
+                      className={`p-4 border cursor-pointer flex items-center justify-between transition-all rounded-lg ${
+                        paymentMethod === pay.id ? 'border-[#B8924A] bg-[#FAF6F0] font-semibold' : 'border-gray-300 bg-white'
                       }`}
                     >
                       <span>{pay.label}</span>
-                      {paymentMethod === pay.id && <Check className="w-4 h-4 text-vasana-burgundy" />}
+                      {paymentMethod === pay.id && <Check className="w-4 h-4 text-[#B8924A]" />}
                     </div>
                   ))}
                 </div>
@@ -334,16 +326,17 @@ export default function Checkout() {
                 <div className="pt-6 flex justify-between">
                   <button
                     onClick={() => setStep(2)}
-                    className="px-6 py-3 border border-gray-300 text-xs font-sans"
+                    className="px-6 py-3 border border-gray-300 text-xs font-sans rounded-lg"
                   >
                     Back to Delivery
                   </button>
                   <button
-                    onClick={handlePlaceOrder}
+                    onClick={initiatePayment}
                     disabled={loading}
-                    className="px-8 py-4 bg-vasana-gold text-vasana-dark text-xs font-sans font-bold tracking-super-wide uppercase hover:bg-vasana-goldLight transition-colors shadow-luxury flex items-center space-x-2"
+                    className="px-8 py-4 bg-[#B8924A] hover:bg-[#D4B26A] text-[#1F1A17] text-xs font-sans font-bold tracking-super-wide uppercase shadow-luxury transition-colors rounded-lg flex items-center space-x-2"
                   >
-                    {loading ? 'Processing...' : `PAY & PLACE ORDER (₹${grandTotal.toLocaleString('en-IN')})`}
+                    <span>{loading ? 'Processing...' : `PROCEED TO PAY ₹${grandTotal.toLocaleString('en-IN')}`}</span>
+                    <ArrowRight className="w-4 h-4 text-[#1F1A17]" />
                   </button>
                 </div>
               </div>
@@ -351,9 +344,63 @@ export default function Checkout() {
 
           </div>
 
+          {/* Right Order Summary Column */}
+          <div className="lg:col-span-5 bg-white p-6 sm:p-8 border border-[#EFE7DC] shadow-sm space-y-6 rounded-xl">
+            <h3 className="font-serif text-2xl text-[#1F1A17] border-b border-[#EFE7DC] pb-3">Order Summary</h3>
+
+            <div className="space-y-4 max-h-72 overflow-y-auto pr-2">
+              {cart.map((item, idx) => (
+                <div key={idx} className="flex items-center space-x-3 text-xs font-sans">
+                  <img src={item.product.images?.[0]} alt={item.product.name} className="w-12 h-14 object-cover rounded border border-[#EFE7DC]" />
+                  <div className="flex-1">
+                    <h5 className="font-serif text-sm font-semibold text-[#1F1A17]">{item.product.name}</h5>
+                    <span className="text-gray-500 block text-[11px]">{item.blouseOption || 'Unstitched Standard'}</span>
+                    <span className="text-gray-500">Qty: {item.quantity}</span>
+                  </div>
+                  <strong className="text-[#1F1A17]">₹{(item.price * item.quantity).toLocaleString('en-IN')}</strong>
+                </div>
+              ))}
+            </div>
+
+            <div className="space-y-2 pt-4 border-t border-[#EFE7DC] text-xs font-sans">
+              <div className="flex justify-between text-gray-600">
+                <span>Subtotal:</span>
+                <span>₹{subtotal.toLocaleString('en-IN')}</span>
+              </div>
+              {discountAmount > 0 && (
+                <div className="flex justify-between text-green-700 font-semibold">
+                  <span>Discount Code Applied:</span>
+                  <span>-₹{Math.round(discountAmount).toLocaleString('en-IN')}</span>
+                </div>
+              )}
+              <div className="flex justify-between text-gray-600">
+                <span>5% GST (Apparel):</span>
+                <span>₹{taxAmount.toLocaleString('en-IN')}</span>
+              </div>
+              <div className="flex justify-between text-gray-600">
+                <span>Express Courier Shipping:</span>
+                <span className="text-green-700 font-bold">{shippingFee === 0 ? 'Complimentary' : `₹${shippingFee}`}</span>
+              </div>
+              <div className="flex justify-between text-sm font-bold text-[#1F1A17] border-t border-[#EFE7DC] pt-3">
+                <span>Grand Total:</span>
+                <span className="text-[#B8924A] text-xl">₹{grandTotal.toLocaleString('en-IN')}</span>
+              </div>
+            </div>
+          </div>
+
         </div>
 
       </div>
+
+      {/* Interactive Payment Gateway Authorization Modal (GPay / Razorpay) */}
+      {showPaymentModal && (
+        <PaymentGatewayModal
+          paymentMethod={paymentMethod}
+          totalAmount={grandTotal}
+          onPaymentSuccess={executeOrderCreation}
+          onClose={() => setShowPaymentModal(false)}
+        />
+      )}
     </div>
   );
 }
