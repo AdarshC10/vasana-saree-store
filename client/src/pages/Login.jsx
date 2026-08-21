@@ -12,8 +12,20 @@ export default function Login() {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
 
+  const { user, setUser } = useAuth();
   const { addToast } = useToast();
   const navigate = useNavigate();
+
+  // If already logged in, auto-redirect to appropriate dashboard
+  React.useEffect(() => {
+    if (user) {
+      if (user.role === 'admin' || user.role === 'super_admin' || user.isAdmin) {
+        navigate('/admin', { replace: true });
+      } else {
+        navigate('/account', { replace: true });
+      }
+    }
+  }, [user, navigate]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -67,14 +79,15 @@ export default function Login() {
 
       if (resData.success) {
         const userData = resData.user || { name: cleanEmail.split('@')[0], email: cleanEmail, role: 'customer' };
+        setUser(userData);
         localStorage.setItem('vasana_user', JSON.stringify(userData));
         addToast(`Welcome back, ${userData.name}!`, 'success');
         
-        // Direct redirect based on user role (Admin -> /admin, Customer -> /)
-        if (userData.role === 'admin' || userData.role === 'super_admin') {
+        // Direct redirect based on user role (Admin -> /admin, Customer -> /account)
+        if (userData.role === 'admin' || userData.role === 'super_admin' || userData.isAdmin) {
           window.location.href = '/admin';
         } else {
-          navigate('/');
+          navigate('/account', { replace: true });
         }
       } else {
         addToast(resData.message || 'Invalid email or password.', 'error');

@@ -46,12 +46,12 @@ export default function Account() {
     try {
       const res = await api.get('/orders/myorders');
       if (Array.isArray(res.data) && res.data.length > 0) {
-        setMyOrders(res.data);
+        setOrders(res.data);
       } else {
-        setMyOrders(fallbackOrders);
+        setOrders(fallbackOrders);
       }
     } catch (error) {
-      setMyOrders(fallbackOrders);
+      setOrders(fallbackOrders);
     } finally {
       setLoadingOrders(false);
     }
