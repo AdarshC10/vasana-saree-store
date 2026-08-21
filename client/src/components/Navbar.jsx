@@ -10,6 +10,7 @@ export default function Navbar() {
   const [isScrolled, setIsScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
+  const [accountDropdownOpen, setAccountDropdownOpen] = useState(false);
 
   const { setIsCartOpen, totalItemCount } = useCart();
   const { wishlistCount } = useWishlist();
@@ -120,43 +121,76 @@ export default function Navbar() {
                 </Link>
 
                 {/* Account / User */}
-                <div className="relative group hidden sm:block">
-                  <Link
-                    to={user ? (isAdmin ? '/admin' : '/account') : '/login'}
-                    className="p-1.5 hover:text-[#B4975A] transition-colors flex items-center space-x-1"
+                <div 
+                  className="relative hidden sm:block"
+                  onMouseEnter={() => setAccountDropdownOpen(true)}
+                  onMouseLeave={() => setAccountDropdownOpen(false)}
+                >
+                  <button
+                    onClick={() => {
+                      if (!user) {
+                        navigate('/login');
+                      } else {
+                        setAccountDropdownOpen(!accountDropdownOpen);
+                      }
+                    }}
+                    className="p-1.5 hover:text-[#B4975A] transition-colors flex items-center space-x-1.5 focus:outline-none"
                     aria-label="Account"
                   >
-                    <User className="w-4 h-4" />
+                    <User className="w-4 h-4 text-[#B8924A]" />
+                    {user && (
+                      <span className="text-[11px] font-sans font-bold text-current max-w-[90px] truncate">
+                        {user.name?.split(' ')[0] || 'Account'}
+                      </span>
+                    )}
                     {isAdmin && (
-                      <span className="text-[9px] bg-[#B4975A] text-white px-1.5 py-0.5 font-bold uppercase tracking-wider">
+                      <span className="text-[9px] bg-[#B8924A] text-white px-1.5 py-0.5 font-bold uppercase tracking-wider rounded">
                         ADMIN
                       </span>
                     )}
-                  </Link>
+                  </button>
 
-                  {user && (
-                    <div className="absolute right-0 top-full mt-1 w-48 bg-white border border-[#EFE7DC] shadow-luxury opacity-0 group-hover:opacity-100 pointer-events-none group-hover:pointer-events-auto transition-all duration-200 z-50 p-2 text-[#29231F]">
-                      <div className="px-3 py-2 border-b border-[#EFE7DC]">
-                        <p className="text-xs font-semibold truncate">{user.name}</p>
-                        <p className="text-[10px] text-gray-500 truncate">{user.email}</p>
+                  {user && accountDropdownOpen && (
+                    <div className="absolute right-0 top-full mt-1 w-52 bg-white border border-[#EFE7DC] shadow-luxury rounded-xl z-50 p-2 text-[#29231F] space-y-1 animate-in fade-in slide-in-from-top-1 duration-150">
+                      <div className="px-3 py-2 border-b border-[#EFE7DC] bg-[#FAF6F0] rounded-t-lg">
+                        <p className="text-xs font-bold text-[#1F1A17] truncate">{user.name}</p>
+                        <p className="text-[10px] text-gray-500 font-mono truncate">{user.email}</p>
                       </div>
+
                       {isAdmin && (
                         <Link
                           to="/admin"
-                          className="flex items-center px-3 py-2 text-xs hover:bg-[#F7F3ED] text-[#241C18] font-semibold transition-colors"
+                          onClick={() => setAccountDropdownOpen(false)}
+                          className="flex items-center px-3 py-2 text-xs hover:bg-[#FAF6F0] text-[#1F1A17] font-bold rounded-lg transition-colors"
                         >
-                          <ShieldCheck className="w-4 h-4 mr-2 text-[#B4975A]" /> Admin Dashboard
+                          <ShieldCheck className="w-4 h-4 mr-2 text-[#B8924A]" />
+                          <span>Admin Suite</span>
                         </Link>
                       )}
-                      <Link to="/account" className="block px-3 py-2 text-xs hover:bg-[#F7F3ED] transition-colors">
+
+                      <Link
+                        to="/account"
+                        onClick={() => setAccountDropdownOpen(false)}
+                        className="block px-3 py-2 text-xs font-medium hover:bg-[#FAF6F0] text-gray-700 rounded-lg transition-colors"
+                      >
                         My Account & Orders
                       </Link>
-                      <Link to="/wishlist" className="block px-3 py-2 text-xs hover:bg-[#F7F3ED] transition-colors">
+
+                      <Link
+                        to="/wishlist"
+                        onClick={() => setAccountDropdownOpen(false)}
+                        className="block px-3 py-2 text-xs font-medium hover:bg-[#FAF6F0] text-gray-700 rounded-lg transition-colors"
+                      >
                         Wishlist ({wishlistCount})
                       </Link>
+
                       <button
-                        onClick={() => { logout(); navigate('/', { replace: true }); }}
-                        className="w-full text-left px-3 py-2 text-xs text-red-600 hover:bg-red-50 transition-colors border-t border-[#EFE7DC] mt-1"
+                        onClick={() => {
+                          setAccountDropdownOpen(false);
+                          logout();
+                          navigate('/', { replace: true });
+                        }}
+                        className="w-full text-left px-3 py-2 text-xs text-red-600 font-bold hover:bg-red-50 rounded-lg transition-colors border-t border-[#EFE7DC] mt-1"
                       >
                         Sign Out
                       </button>

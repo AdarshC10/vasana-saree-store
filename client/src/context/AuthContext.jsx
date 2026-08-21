@@ -181,7 +181,7 @@ export const AuthProvider = ({ children }) => {
         deleteAddress,
         loginDemoAdmin,
         loginDemoCustomer,
-        isAdmin: user?.role === 'admin'
+        isAdmin: user && (user.role === 'admin' || user.role === 'super_admin' || user.isAdmin === true)
       }}
     >
       {children}
