@@ -223,6 +223,16 @@ export default function Account() {
                             </span>
                           </div>
                           <div>
+                            <span className="text-gray-500 block">PAYMENT</span>
+                            <span className={`px-2 py-0.5 font-bold uppercase tracking-wider text-[10px] rounded ${
+                              (ord.payment?.method === 'COD' || ord.paymentMethod === 'COD')
+                                ? 'bg-orange-100 text-orange-800'
+                                : 'bg-green-100 text-green-800'
+                            }`}>
+                              {(ord.payment?.method === 'COD' || ord.paymentMethod === 'COD') ? 'COD (Pending)' : `${ord.payment?.method || ord.paymentMethod || 'Razorpay'} (Paid)`}
+                            </span>
+                          </div>
+                          <div>
                             <span className="text-gray-500 block">TOTAL AMOUNT</span>
                             <strong className="text-[#241C18] text-sm">₹{ord.totalAmount?.toLocaleString('en-IN')}</strong>
                           </div>
