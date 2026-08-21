@@ -132,7 +132,7 @@ export default function Account() {
               </Link>
             )}
             <button
-              onClick={() => { logout(); navigate('/'); }}
+              onClick={() => { logout(); navigate('/', { replace: true }); }}
               className="px-4 py-2.5 border border-red-300 text-red-600 text-xs font-sans font-bold tracking-widest uppercase hover:bg-red-50 transition-colors flex items-center space-x-1.5"
             >
               <LogOut className="w-4 h-4" />

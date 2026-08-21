@@ -43,7 +43,7 @@ import AdminSettings from './pages/admin/AdminSettings';
 const AdminRoute = ({ children }) => {
   const { user, isAdmin } = useAuth();
   if (!user || !isAdmin) {
-    return <Navigate to="/login" replace />;
+    return <Navigate to="/" replace />;
   }
   return children;
 };

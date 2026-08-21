@@ -275,7 +275,7 @@ export default function AdminLayout({ children }) {
                   </Link>
                   <div className="border-t border-gray-100 my-1" />
                   <button
-                    onClick={() => { setAdminDropdownOpen(false); logout(); navigate('/'); }}
+                    onClick={() => { setAdminDropdownOpen(false); logout(); navigate('/', { replace: true }); }}
                     className="w-full text-left px-4 py-2 text-red-600 hover:bg-red-50 flex items-center space-x-2"
                   >
                     <LogOut className="w-4 h-4" />
