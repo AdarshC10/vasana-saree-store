@@ -38,7 +38,6 @@ export default function Navbar() {
     { name: 'WEDDING', path: '/wedding' },
     { name: 'VISUALIZER', path: '/visualizer' },
     { name: 'CRAFT', path: '/craft' },
-    { name: 'JOURNAL', path: '/journal' },
     { name: 'OUR STORY', path: '/about' },
   ];
 
