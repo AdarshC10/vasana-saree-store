@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { Heart, ShoppingBag, Star, ShieldCheck, Truck, RotateCcw, Check, ArrowRight } from 'lucide-react';
+import { Heart, ShoppingBag, Star, ShieldCheck, Truck, RotateCcw, Check } from 'lucide-react';
 import api from '../services/api';
 import { fallbackProducts } from '../utils/fallbackData';
 import { useCart } from '../context/CartContext';
@@ -35,7 +35,7 @@ export default function ProductDetail() {
     setLoading(true);
     try {
       const res = await api.get(`/products/${identifier}`);
-      if (res.data) {
+      if (res.data && typeof res.data === 'object' && res.data._id) {
         setProduct(res.data);
         document.title = `${res.data.name} | VASANA`;
       } else {
@@ -43,15 +43,16 @@ export default function ProductDetail() {
       }
     } catch (error) {
       findFallback();
-    } finally {
+    } fontally: {
       setLoading(false);
     }
   };
 
   const findFallback = () => {
-    const found = fallbackProducts.find(p => p._id === identifier || p.slug === identifier) || fallbackProducts[0];
+    const found = fallbackProducts.find(p => p._id === identifier || p.slug === identifier || identifier.includes(p._id)) || fallbackProducts[0];
     setProduct(found);
     if (found) document.title = `${found.name} | VASANA`;
+    setLoading(false);
   };
 
   if (loading) {

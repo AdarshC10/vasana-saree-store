@@ -24,7 +24,13 @@ api.interceptors.request.use(
 );
 
 api.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    // Detect HTML fallback string returned by Vercel SPA rewrite and reject to trigger fallback datasets
+    if (typeof response.data === 'string' && (response.data.trim().startsWith('<!') || response.data.trim().startsWith('<html'))) {
+      return Promise.reject(new Error('Backend API unreachable in standalone mode'));
+    }
+    return response;
+  },
   (error) => {
     const customError = error.response?.data?.message || 'Server error. Please check your connection.';
     return Promise.reject(new Error(customError));
