@@ -27,7 +27,7 @@ import {
   Pie,
   Cell
 } from 'recharts';
-import AdminLayout from '../../components/admin/AdminLayout';
+import AdminLayout, { useAdminDate } from '../../components/admin/AdminLayout';
 import { useToast } from '../../context/ToastContext';
 import api from '../../services/api';
 
@@ -156,20 +156,38 @@ const dateRangeDatasets = {
 export default function AdminDashboard() {
   const navigate = useNavigate();
   const { addToast } = useToast();
+  const adminDateCtx = useAdminDate();
 
-  const [dateRange, setDateRange] = useState('This Month');
+  const [dateRange, setDateRange] = useState(adminDateCtx?.dateFilter || 'Today');
   const [customStartDate, setCustomStartDate] = useState('2024-08-01');
   const [customEndDate, setCustomEndDate] = useState('2024-08-21');
 
-  const [stats, setStats] = useState(dateRangeDatasets['This Month'].stats);
-  const [trendData, setTrendData] = useState(dateRangeDatasets['This Month'].trend);
-  const [pieData, setPieData] = useState(dateRangeDatasets['This Month'].pie);
-  const [recentOrders, setRecentOrders] = useState(dateRangeDatasets['This Month'].recentOrders);
+  const initialDataset = dateRangeDatasets[adminDateCtx?.dateFilter || 'Today'] || dateRangeDatasets['Today'];
+  const [stats, setStats] = useState(initialDataset.stats);
+  const [trendData, setTrendData] = useState(initialDataset.trend);
+  const [pieData, setPieData] = useState(initialDataset.pie);
+  const [recentOrders, setRecentOrders] = useState(initialDataset.recentOrders);
 
-  // Auto-Update Dashboard when Date Range Filter changes
+  // Sync date filter from top header dropdown (AdminLayout context)
+  useEffect(() => {
+    if (adminDateCtx?.dateFilter) {
+      const selectedFilter = adminDateCtx.dateFilter;
+      setDateRange(selectedFilter);
+      const dataset = dateRangeDatasets[selectedFilter] || dateRangeDatasets['Today'];
+      setStats(dataset.stats);
+      setTrendData(dataset.trend);
+      setPieData(dataset.pie);
+      setRecentOrders(dataset.recentOrders);
+    }
+  }, [adminDateCtx?.dateFilter]);
+
+  // Auto-Update Dashboard when Date Range Filter changes locally or globally
   const handleDateRangeChange = (newRange) => {
     setDateRange(newRange);
-    const dataset = dateRangeDatasets[newRange] || dateRangeDatasets['This Month'];
+    if (adminDateCtx?.setDateFilter) {
+      adminDateCtx.setDateFilter(newRange);
+    }
+    const dataset = dateRangeDatasets[newRange] || dateRangeDatasets['Today'];
     
     setStats(dataset.stats);
     setTrendData(dataset.trend);

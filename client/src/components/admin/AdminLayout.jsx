@@ -26,6 +26,9 @@ import {
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
 
+export const AdminDateContext = React.createContext();
+export const useAdminDate = () => React.useContext(AdminDateContext);
+
 export default function AdminLayout({ children }) {
   const location = useLocation();
   const navigate = useNavigate();
@@ -34,7 +37,7 @@ export default function AdminLayout({ children }) {
 
   const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
   const [adminDropdownOpen, setAdminDropdownOpen] = useState(false);
-  const [dateFilter, setDateFilter] = useState('This Month');
+  const [dateFilter, setDateFilter] = useState('Today');
   const [lastRefreshed, setLastRefreshed] = useState('');
   const [isRefreshing, setIsRefreshing] = useState(false);
 
@@ -306,7 +309,9 @@ export default function AdminLayout({ children }) {
 
         {/* MAIN PAGE BODY (ALWAYS MOUNTED FOR INSTANT LOADING) */}
         <main className="p-6 sm:p-8 flex-1">
-          {children}
+          <AdminDateContext.Provider value={{ dateFilter, setDateFilter }}>
+            {children}
+          </AdminDateContext.Provider>
         </main>
 
       </div>
