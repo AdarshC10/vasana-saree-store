@@ -13,15 +13,6 @@ export default defineConfig({
     }
   },
   build: {
-    chunkSizeWarningLimit: 1200,
-    rollupOptions: {
-      output: {
-        manualChunks: {
-          'vendor-react': ['react', 'react-dom', 'react-router-dom'],
-          'vendor-recharts': ['recharts'],
-          'vendor-icons': ['lucide-react']
-        }
-      }
-    }
+    chunkSizeWarningLimit: 2000
   }
 });
