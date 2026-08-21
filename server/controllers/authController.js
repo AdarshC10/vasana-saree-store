@@ -217,18 +217,22 @@ export const loginCustomer = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Email and password are required.' });
     }
 
-    // Generic error message to prevent user enumeration
-    const genericErrorMessage = 'Invalid email or password.';
-
     const customer = await Customer.findOne({ email: email.toLowerCase().trim() });
     if (!customer) {
-      return res.status(400).json({ success: false, message: genericErrorMessage });
+      return res.status(400).json({
+        success: false,
+        notRegistered: true,
+        message: 'No account found. Please register first.'
+      });
     }
 
     // Check password hash
     const isPasswordMatch = await bcrypt.compare(password, customer.passwordHash);
     if (!isPasswordMatch) {
-      return res.status(400).json({ success: false, message: genericErrorMessage });
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid email or password.'
+      });
     }
 
     // Check verification status

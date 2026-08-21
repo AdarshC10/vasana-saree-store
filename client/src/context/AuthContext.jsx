@@ -73,29 +73,17 @@ export const AuthProvider = ({ children }) => {
       return mockCustomer;
     }
 
-    // Try backend API with fast 1s timeout
     try {
-      const res = await api.post('/auth/login', { email, password }, { timeout: 1000 });
-      const userData = res.data;
+      const res = await api.post('/auth/login', { email, password });
+      const userData = res.data.user || res.data;
       setUser(userData);
       localStorage.setItem('vasana_user', JSON.stringify(userData));
-      if (userData.role !== 'admin') saveCustomerLocal(userData);
-      addToast(`Welcome back, ${userData.name}!`, 'success');
+      addToast(`Welcome back, ${userData.name || 'Valued Customer'}!`, 'success');
       return userData;
     } catch (error) {
-      const mockUser = {
-        _id: 'user_' + Date.now(),
-        name: email.split('@')[0] || 'VASANA Client',
-        email: email,
-        role: 'customer',
-        addresses: [],
-        token: 'mock_token_' + Date.now()
-      };
-      setUser(mockUser);
-      localStorage.setItem('vasana_user', JSON.stringify(mockUser));
-      saveCustomerLocal(mockUser);
-      addToast(`Welcome back, ${mockUser.name}!`, 'success');
-      return mockUser;
+      const errMsg = error.response?.data?.message || 'Invalid email or password.';
+      addToast(errMsg, 'error');
+      throw error;
     } finally {
       setLoading(false);
     }

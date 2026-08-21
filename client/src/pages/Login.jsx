@@ -25,32 +25,16 @@ export default function Login() {
 
     setLoading(true);
     try {
-      let resData;
-      try {
-        const res = await api.post('/auth/login', { email, password });
-        resData = res.data;
-      } catch (err) {
-        if (err.response?.data?.requiresOTP) {
-          addToast('Account not verified yet. Please enter the OTP sent to your phone.', 'warning');
-          navigate('/verify-otp', { state: { phone: err.response.data.phone, email } });
-          return;
-        }
-        resData = {
-          success: true,
-          token: 'mock_jwt_customer_token',
-          user: { _id: 'cust_demo', name: email.split('@')[0], email, role: 'customer' }
-        };
+      await login(email, password);
+      navigate('/');
+    } catch (err) {
+      if (err.response?.data?.requiresOTP) {
+        addToast('Account not verified yet. Please enter the OTP sent to your phone.', 'warning');
+        navigate('/verify-otp', { state: { phone: err.response.data.phone, email } });
+        return;
       }
-
-      if (resData.success) {
-        login(email, password);
-        addToast('Logged in successfully! Welcome back to VASANA.', 'success');
-        navigate('/');
-      } else {
-        addToast(resData.message || 'Invalid email or password.', 'error');
-      }
-    } catch (error) {
-      addToast(error.response?.data?.message || 'Invalid email or password.', 'error');
+      const errorMessage = err.response?.data?.message || err.message || 'Invalid email or password.';
+      addToast(errorMessage, 'error');
     } finally {
       setLoading(false);
     }
