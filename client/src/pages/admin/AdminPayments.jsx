@@ -17,22 +17,26 @@ export default function AdminPayments() {
   const { addToast } = useToast();
 
   useEffect(() => {
+    fetchMongoDBPayments();
+  }, []);
+
+  const fetchMongoDBPayments = async () => {
     try {
-      const savedOrders = JSON.parse(localStorage.getItem('vasana_orders') || '[]');
-      if (savedOrders.length > 0) {
-        const liveTxns = savedOrders.map(o => ({
-          id: 'TXN-' + Math.floor(100000 + Math.random() * 900000),
-          orderId: o._id || o.id,
-          method: o.payment?.method ? `${o.payment.method} Gateway` : 'Razorpay (Cards)',
-          amount: typeof o.totalAmount === 'number' ? `₹${o.totalAmount.toLocaleString('en-IN')}` : (o.total || '₹0'),
-          fee: '₹0 (Demo)',
-          status: o.payment?.method === 'COD' ? 'Pending Clearance' : 'Settled',
+      const res = await api.get('/admin/payments');
+      if (Array.isArray(res.data) && res.data.length > 0) {
+        const liveTxns = res.data.map(o => ({
+          id: o.razorpayPaymentId || ('TXN-' + Math.floor(100000 + Math.random() * 900000)),
+          orderId: o.razorpayOrderId || o._id,
+          method: `${o.paymentMethod || 'Razorpay'} Gateway`,
+          amount: `₹${(o.totalAmount || 0).toLocaleString('en-IN')}`,
+          fee: '₹0 (Gateway)',
+          status: o.paymentStatus === 'paid' ? 'Settled' : 'Pending Clearance',
           date: o.createdAt ? new Date(o.createdAt).toLocaleString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'Today'
         }));
         setTransactions([...liveTxns, ...defaultTransactions]);
       }
-    } catch(e) {}
-  }, []);
+    } catch (err) {}
+  };
 
   const handleExport = () => {
     const headers = ['Transaction ID', 'Order ID', 'Payment Gateway', 'Amount (INR)', 'Fee / GST', 'Status', 'Date'];

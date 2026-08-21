@@ -28,26 +28,37 @@ export default function AdminOrders() {
   const { addToast } = useToast();
 
   useEffect(() => {
-    try {
-      const savedOrders = JSON.parse(localStorage.getItem('vasana_orders') || '[]');
-      if (savedOrders.length > 0) {
-        const formatted = savedOrders.map(o => ({
-          id: o._id || o.id,
-          customer: o.customer || 'Customer',
-          email: o.email || 'customer@example.com',
-          city: o.city || 'Bengaluru',
-          date: o.date || 'Today',
-          total: typeof o.total === 'number' ? o.total : parseInt(String(o.total).replace(/\D/g,'')) || 0,
-          payment: o.payment || 'Razorpay (Paid)',
-          status: o.status || 'Processing',
-          items: o.items || '1 Saree'
-        }));
-        const combined = [...formatted, ...sampleOrders];
-        const unique = combined.filter((v, i, a) => a.findIndex(t => t.id === v.id) === i);
-        setOrdersList(unique);
-      }
-    } catch(e) {}
+    fetchMongoDBOrders();
+    // Real-Time Auto-Polling: Query MongoDB backend every 10 seconds for new customer orders
+    const intervalId = setInterval(() => {
+      fetchMongoDBOrders();
+    }, 10000);
+    return () => clearInterval(intervalId);
   }, []);
+
+  const fetchMongoDBOrders = async () => {
+    try {
+      const res = await api.get('/admin/orders');
+      if (Array.isArray(res.data) && res.data.length > 0) {
+        const formatted = res.data.map(o => ({
+          id: o._id || o.id,
+          customer: o.user?.name || o.shippingAddress?.fullName || 'Customer',
+          email: o.user?.email || 'customer@example.com',
+          city: o.shippingAddress?.city || 'Bengaluru',
+          date: o.createdAt ? new Date(o.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : 'Today',
+          total: o.totalAmount || 0,
+          payment: o.paymentStatus === 'paid' ? `${o.paymentMethod || 'Razorpay'} (Paid)` : `${o.paymentMethod || 'COD'} (Pending)`,
+          status: o.status || 'Processing',
+          items: Array.isArray(o.items) ? o.items.map(i => i.name).join(', ') : '1 Saree'
+        }));
+        setOrdersList(formatted);
+      } else {
+        setOrdersList(sampleOrders);
+      }
+    } catch (err) {
+      setOrdersList(sampleOrders);
+    }
+  };
 
   const filteredOrders = ordersList.filter((ord) => {
     const matchesTab = activeTab === 'All Orders' || ord.status === activeTab;

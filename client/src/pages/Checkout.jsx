@@ -173,11 +173,6 @@ export default function Checkout() {
           createdAt: new Date().toISOString()
         };
 
-        try {
-          const existingOrders = JSON.parse(localStorage.getItem('vasana_orders') || '[]');
-          localStorage.setItem('vasana_orders', JSON.stringify([newOrderObj, ...existingOrders]));
-        } catch (err) {}
-
         clearCart();
         setShowPaymentModal(false);
         addToast('Payment Verified & Order Confirmed!', 'success');

@@ -43,23 +43,18 @@ export default function Account() {
 
   const fetchMyOrders = async () => {
     setLoadingOrders(true);
-    let serverOrders = [];
     try {
       const res = await api.get('/orders/myorders');
       if (Array.isArray(res.data) && res.data.length > 0) {
-        serverOrders = res.data;
+        setMyOrders(res.data);
+      } else {
+        setMyOrders(fallbackOrders);
       }
-    } catch (error) {}
-
-    let localOrders = [];
-    try {
-      localOrders = JSON.parse(localStorage.getItem('vasana_orders') || '[]');
-    } catch(e){}
-
-    const combined = [...localOrders, ...serverOrders, ...fallbackOrders];
-    const uniqueOrders = combined.filter((v, i, a) => a.findIndex(t => t._id === v._id) === i);
-    setOrders(uniqueOrders);
-    setLoadingOrders(false);
+    } catch (error) {
+      setMyOrders(fallbackOrders);
+    } finally {
+      setLoadingOrders(false);
+    }
   };
 
   const handleProfileUpdate = async (e) => {

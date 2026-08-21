@@ -23,19 +23,7 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   const saveCustomerLocal = (u) => {
-    try {
-      const existing = JSON.parse(localStorage.getItem('vasana_customers') || '[]');
-      const newCustomerObj = {
-        _id: u._id || ('cust_' + Date.now()),
-        name: u.name,
-        email: u.email,
-        phone: u.phone || '',
-        addresses: u.addresses || [],
-        createdAt: new Date().toISOString()
-      };
-      const filtered = existing.filter(c => c.email !== u.email);
-      localStorage.setItem('vasana_customers', JSON.stringify([newCustomerObj, ...filtered]));
-    } catch (e) {}
+    // Customers are managed directly in MongoDB User collection via Express auth endpoints
   };
 
   const login = async (email, password) => {

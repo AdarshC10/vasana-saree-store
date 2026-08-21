@@ -66,13 +66,17 @@ export default function AdminDashboard() {
 
   useEffect(() => {
     fetchLiveMongoDBStats();
+    // Real-Time Auto-Polling: Query MongoDB backend every 10 seconds for new customer orders
+    const intervalId = setInterval(() => {
+      fetchLiveMongoDBStats();
+    }, 10000);
+    return () => clearInterval(intervalId);
   }, []);
 
   const fetchLiveMongoDBStats = async () => {
     try {
-      // Primary: Query MongoDB backend REST API
       const res = await api.get('/admin/stats');
-      if (res.data && res.data.totalRevenue !== undefined) {
+      if (res.data) {
         setStats({
           totalRevenue: res.data.totalRevenue || 1245000,
           totalOrders: res.data.totalOrders || 48,
@@ -91,28 +95,9 @@ export default function AdminDashboard() {
             statusColor: o.status === 'Delivered' ? 'bg-green-50 text-green-700' : 'bg-blue-50 text-blue-700'
           }));
           setRecentOrders(apiFormatted);
-          return;
         }
       }
-    } catch (err) {
-      // Secondary Fallback: localStorage cache for offline testing
-    }
-
-    try {
-      const savedOrders = JSON.parse(localStorage.getItem('vasana_orders') || '[]');
-      if (savedOrders.length > 0) {
-        const formattedSaved = savedOrders.map(o => ({
-          id: o._id || o.id,
-          name: o.user?.name || o.shippingAddress?.fullName || 'Customer',
-          date: o.createdAt ? new Date(o.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' }) : 'Today',
-          total: typeof o.totalAmount === 'number' ? `₹${o.totalAmount.toLocaleString('en-IN')}` : (o.total || '₹0'),
-          pay: o.payment?.status?.includes('Paid') ? 'Paid' : 'Pending',
-          status: o.status || 'Processing',
-          statusColor: o.status === 'Delivered' ? 'bg-green-50 text-green-700' : 'bg-blue-50 text-blue-700'
-        }));
-        setRecentOrders([...formattedSaved, ...defaultOrders].slice(0, 5));
-      }
-    } catch(e) {}
+    } catch (err) {}
   };
 
   return (
