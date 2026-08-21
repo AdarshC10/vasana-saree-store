@@ -45,11 +45,11 @@ import AdminPayments from './pages/admin/AdminPayments';
 import AdminCoupons from './pages/admin/AdminCoupons';
 import AdminSettings from './pages/admin/AdminSettings';
 
-// Protected Admin Route Wrapper
+// Protected Admin Route Wrapper (Requires authenticated user with admin role)
 const AdminRoute = ({ children }) => {
-  const { user, isAdmin } = useAuth();
-  const hasAdminSession = localStorage.getItem('vasana_admin_session') === 'active';
-  if ((!user || !isAdmin) && !hasAdminSession) {
+  const { user } = useAuth();
+  const isAdminUser = user && (user.role === 'admin' || user.role === 'super_admin');
+  if (!isAdminUser) {
     return <Navigate to="/admin-login" replace />;
   }
   return children;

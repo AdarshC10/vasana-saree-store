@@ -29,22 +29,8 @@ export const AuthProvider = ({ children }) => {
   const login = async (email, password) => {
     setLoading(true);
     
-    // Instant 0ms login check for admin & customer demo credentials
-    if ((email === 'admin@example.com' && password === 'admin123') || (email && email.includes('admin'))) {
-      const mockAdmin = {
-        _id: 'admin_demo_id',
-        name: 'VASANA Administrator',
-        email: email || 'admin@example.com',
-        role: 'admin',
-        addresses: [],
-        token: 'mock_admin_token'
-      };
-      setUser(mockAdmin);
-      localStorage.setItem('vasana_user', JSON.stringify(mockAdmin));
-      addToast('Welcome back, VASANA Administrator!', 'success');
-      setLoading(false);
-      return mockAdmin;
-    }
+    // Customer login strictly calls backend API
+
 
     if (email === 'customer@example.com' && password === 'customer123') {
       const mockCustomer = {

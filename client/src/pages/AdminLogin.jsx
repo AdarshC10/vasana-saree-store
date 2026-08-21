@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ShieldCheck, Lock, Mail, Key, ArrowRight, AlertTriangle } from 'lucide-react';
+import { ShieldCheck, Lock, Mail, ArrowRight, AlertTriangle } from 'lucide-react';
 import { useToast } from '../context/ToastContext';
 import api from '../services/api';
 
@@ -17,6 +17,11 @@ export default function AdminLogin() {
 
   const handleAdminLoginSubmit = async (e) => {
     e.preventDefault();
+    if (!email || !password) {
+      addToast('Please enter admin email and password.', 'error');
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -25,20 +30,26 @@ export default function AdminLogin() {
         const res = await api.post('/admin/auth/login', { email, password });
         resData = res.data;
       } catch (err) {
-        // Fallback for pre-approved admin credentials in standalone demo
-        resData = {
-          success: true,
-          requires2FA: true,
-          email,
-          demo2FAOTP: '987654',
-          message: 'Password correct. Mandatory 2FA code sent to your registered admin email.'
-        };
+        // Fallback for pre-approved admin credentials in dev environment
+        if ((email === 'admin@vasana.com' && password === 'AdminPassword123!') || (email === 'director@vasana.com' && password === 'DirectorPassword123!')) {
+          resData = {
+            success: true,
+            requires2FA: true,
+            email,
+            demo2FAOTP: '987654',
+            message: 'Password correct. Mandatory 2FA code sent to your registered admin email.'
+          };
+        } else {
+          throw err;
+        }
       }
 
       if (resData.requires2FA) {
         setStep2FA(true);
-        setDemo2FA(resData.demo2FAOTP || '987654');
+        setDemo2FA(resData.demo2FAOTP || '');
         addToast('Password correct. Mandatory 2FA code sent to your admin email.', 'success');
+      } else {
+        addToast('Invalid admin credentials.', 'error');
       }
     } catch (error) {
       addToast(error.response?.data?.message || 'Invalid admin credentials.', 'error');
@@ -61,18 +72,28 @@ export default function AdminLogin() {
         const res = await api.post('/admin/auth/verify-2fa', { email, otp: otp2FA });
         resData = res.data;
       } catch (e) {
-        resData = { success: otp2FA === demo2FA || otp2FA === '987654' };
+        if (otp2FA === demo2FA || otp2FA === '987654') {
+          resData = {
+            success: true,
+            adminToken: 'mock_admin_jwt_token',
+            admin: { _id: 'adm_1', name: 'VASANA Master Admin', email, role: 'super_admin' }
+          };
+        } else {
+          throw e;
+        }
       }
 
       if (resData.success) {
         addToast('Admin 2FA Verified. Welcome to Administration Suite!', 'success');
-        localStorage.setItem('vasana_admin_session', 'active');
+        const adminObj = resData.admin || { _id: 'adm_1', name: 'VASANA Master Admin', email, role: 'super_admin' };
+        adminObj.token = resData.adminToken || 'admin_token';
+        localStorage.setItem('vasana_user', JSON.stringify(adminObj));
         window.location.href = '/admin';
       } else {
         addToast('Incorrect 2FA code. Access denied.', 'error');
       }
     } catch (error) {
-      addToast(error.response?.data?.message || 'Admin 2FA verification failed.', 'error');
+      addToast(error.response?.data?.message || 'Invalid admin credentials.', 'error');
     } finally {
       setLoading(false);
     }
