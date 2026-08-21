@@ -44,12 +44,6 @@ export default function Navbar() {
   return (
     <>
       <header className="fixed top-0 left-0 right-0 z-40 transition-all duration-500 font-sans">
-        
-        {/* Minimal Announcement Bar */}
-        <div className="bg-[#241C18] text-[#F7F3ED] text-[10px] sm:text-xs py-1.5 px-4 text-center tracking-super-wide uppercase font-medium border-b border-[#B4975A]/20">
-          <span>Complimentary shipping on orders above ₹5,000</span>
-        </div>
-
         {/* Main Navigation Bar */}
         <nav
           className={`transition-all duration-500 ${
