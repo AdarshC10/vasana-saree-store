@@ -25,8 +25,14 @@ import Wishlist from './pages/Wishlist';
 import Checkout from './pages/Checkout';
 import OrderSuccess from './pages/OrderSuccess';
 import Account from './pages/Account';
+
+// Auth System Pages
 import Login from './pages/Login';
 import Register from './pages/Register';
+import VerifyOTP from './pages/VerifyOTP';
+import ForgotPassword from './pages/ForgotPassword';
+import ResetPassword from './pages/ResetPassword';
+import AdminLogin from './pages/AdminLogin';
 
 // Admin Suite Pages
 import AdminDashboard from './pages/admin/AdminDashboard';
@@ -42,8 +48,9 @@ import AdminSettings from './pages/admin/AdminSettings';
 // Protected Admin Route Wrapper
 const AdminRoute = ({ children }) => {
   const { user, isAdmin } = useAuth();
-  if (!user || !isAdmin) {
-    return <Navigate to="/" replace />;
+  const hasAdminSession = localStorage.getItem('vasana_admin_session') === 'active';
+  if ((!user || !isAdmin) && !hasAdminSession) {
+    return <Navigate to="/admin-login" replace />;
   }
   return children;
 };
@@ -83,9 +90,17 @@ export default function App() {
                     <Route path="/wishlist" element={<Wishlist />} />
                     <Route path="/checkout" element={<Checkout />} />
                     <Route path="/order-success/:id" element={<OrderSuccess />} />
+                    
+                    {/* Customer Auth System Routes */}
                     <Route path="/login" element={<Login />} />
                     <Route path="/register" element={<Register />} />
-                    
+                    <Route path="/verify-otp" element={<VerifyOTP />} />
+                    <Route path="/forgot-password" element={<ForgotPassword />} />
+                    <Route path="/reset-password" element={<ResetPassword />} />
+
+                    {/* Restricted Admin Auth Route */}
+                    <Route path="/admin-login" element={<AdminLogin />} />
+
                     <Route path="/account" element={<UserRoute><Account /></UserRoute>} />
 
                     {/* VASANA Administration Suite */}

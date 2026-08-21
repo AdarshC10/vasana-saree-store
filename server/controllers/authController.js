@@ -1,138 +1,375 @@
+import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
-import User from '../models/User.js';
+import crypto from 'crypto';
+import Customer from '../models/Customer.js';
+import OTP from '../models/OTP.js';
+import PasswordResetToken from '../models/PasswordResetToken.js';
+import dotenv from 'dotenv';
 
-const generateToken = (id) => {
-  return jwt.sign({ id }, process.env.JWT_SECRET || 'vasana_secret_key_luxury_fashion_2026_jwt_token_auth', {
-    expiresIn: process.env.JWT_EXPIRE || '30d'
-  });
+dotenv.config();
+
+const JWT_SECRET = process.env.JWT_SECRET || 'vasana_secret_key_luxury_fashion_2026_jwt_token_auth';
+const BCRYPT_SALT_ROUNDS = Number(process.env.BCRYPT_SALT_ROUNDS) || 10;
+
+/**
+ * Helper to generate a 6-digit numeric OTP
+ */
+const generate6DigitOTP = () => {
+  return Math.floor(100000 + Math.random() * 900000).toString();
 };
 
-export const registerUser = async (req, res, next) => {
+/**
+ * ============================================================================
+ * B. CUSTOMER REGISTRATION & OTP VERIFICATION
+ * ============================================================================
+ * Endpoint: POST /api/auth/register
+ */
+export const registerCustomer = async (req, res) => {
   try {
-    const { name, email, password, phone } = req.body;
-    if (!name || !email || !password) {
-      return res.status(400).json({ message: 'Please provide all required fields (name, email, password)' });
+    const { fullName, email, phone, password, confirmPassword } = req.body;
+
+    // --- SERVER-SIDE RE-VALIDATION ---
+    if (!fullName || fullName.trim().length < 2 || !/^[a-zA-Z\s]+$/.test(fullName)) {
+      return res.status(400).json({ success: false, message: 'Full name must contain at least 2 letters.' });
     }
 
-    const userExists = await User.findOne({ email });
-    if (userExists) {
-      return res.status(400).json({ message: 'User with this email already exists' });
+    if (!email || !/^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$/.test(email)) {
+      return res.status(400).json({ success: false, message: 'Please enter a valid email address.' });
     }
 
-    const user = await User.create({ name, email, password, phone: phone || '' });
-    const token = generateToken(user._id);
+    if (!phone || !/^\d{10}$/.test(phone)) {
+      return res.status(400).json({ success: false, message: 'Phone number must be exactly 10 digits.' });
+    }
 
-    res.status(201).json({
-      _id: user._id,
-      name: user.name,
-      email: user.email,
-      role: user.role,
-      token
+    if (!password || password.length < 8 || !/(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])/.test(password)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Password must be at least 8 characters with 1 uppercase letter, 1 number, and 1 special character.'
+      });
+    }
+
+    if (password !== confirmPassword) {
+      return res.status(400).json({ success: false, message: 'Passwords do not match.' });
+    }
+
+    // --- EMAIL & PHONE UNIQUENESS CHECK ---
+    const existingEmail = await Customer.findOne({ email: email.toLowerCase().trim() });
+    if (existingEmail) {
+      return res.status(400).json({ success: false, message: 'An account with this email address already exists.' });
+    }
+
+    const existingPhone = await Customer.findOne({ phone: phone.trim() });
+    if (existingPhone) {
+      return res.status(400).json({ success: false, message: 'An account with this phone number already exists.' });
+    }
+
+    // --- BCRYPT PASSWORD HASHING ---
+    const salt = await bcrypt.genSalt(BCRYPT_SALT_ROUNDS);
+    const passwordHash = await bcrypt.hash(password, salt);
+
+    // Create Customer with isVerified: false
+    const customer = new Customer({
+      fullName: fullName.trim(),
+      email: email.toLowerCase().trim(),
+      phone: phone.trim(),
+      passwordHash,
+      isVerified: false,
+      role: 'customer'
+    });
+
+    await customer.save();
+
+    // --- GENERATE & STORE 6-DIGIT OTP ---
+    const rawOtp = generate6DigitOTP();
+    const otpSalt = await bcrypt.genSalt(8);
+    const otpHash = await bcrypt.hash(rawOtp, otpSalt);
+    const expiresAt = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes expiry
+
+    // Save to OTP collection
+    await OTP.deleteMany({ identifier: customer.phone });
+    await OTP.create({
+      identifier: customer.phone,
+      otpHash,
+      expiresAt,
+      attempts: 0,
+      purpose: 'registration'
+    });
+
+    console.log(`[SMS OTP SIMULATION] Sent OTP [ ${rawOtp} ] to Phone: ${customer.phone}`);
+
+    return res.status(201).json({
+      success: true,
+      message: 'Customer registered successfully. Please verify your OTP sent via SMS.',
+      requiresOTP: true,
+      phone: customer.phone,
+      email: customer.email,
+      demoOTP: rawOtp // Exposed in demo response for effortless testing
     });
   } catch (error) {
-    next(error);
+    console.error('Registration Error:', error);
+    return res.status(500).json({ success: false, message: 'Server error during registration.' });
   }
 };
 
-export const loginUser = async (req, res, next) => {
+/**
+ * Endpoint: POST /api/auth/verify-otp
+ */
+export const verifyOTP = async (req, res) => {
+  try {
+    const { phone, otp } = req.body;
+
+    if (!phone || !otp) {
+      return res.status(400).json({ success: false, message: 'Phone number and 6-digit OTP are required.' });
+    }
+
+    const otpRecord = await OTP.findOne({ identifier: phone, purpose: 'registration' });
+    if (!otpRecord) {
+      return res.status(400).json({ success: false, message: 'OTP expired or not found. Please click Resend OTP.' });
+    }
+
+    // Check rate limit on verification attempts (max 5 attempts)
+    if (otpRecord.attempts >= 5) {
+      await OTP.deleteOne({ _id: otpRecord._id });
+      return res.status(400).json({ success: false, message: 'Too many incorrect attempts. Please request a new OTP.' });
+    }
+
+    // Check expiry
+    if (new Date() > otpRecord.expiresAt) {
+      await OTP.deleteOne({ _id: otpRecord._id });
+      return res.status(400).json({ success: false, message: 'OTP has expired. Please request a new OTP.' });
+    }
+
+    // Compare OTP hash
+    const isOtpValid = await bcrypt.compare(otp.trim(), otpRecord.otpHash);
+    if (!isOtpValid) {
+      otpRecord.attempts += 1;
+      await otpRecord.save();
+      return res.status(400).json({ success: false, message: `Incorrect OTP. ${5 - otpRecord.attempts} attempts remaining.` });
+    }
+
+    // On Success: Set isVerified: true on Customer
+    const customer = await Customer.findOne({ phone });
+    if (customer) {
+      customer.isVerified = true;
+      await customer.save();
+    }
+
+    // Invalidate OTP record
+    await OTP.deleteOne({ _id: otpRecord._id });
+
+    return res.status(200).json({
+      success: true,
+      message: 'Account verified successfully! You may now sign in.'
+    });
+  } catch (error) {
+    console.error('OTP Verification Error:', error);
+    return res.status(500).json({ success: false, message: 'Server error verifying OTP.' });
+  }
+};
+
+/**
+ * Endpoint: POST /api/auth/resend-otp
+ */
+export const resendOTP = async (req, res) => {
+  try {
+    const { phone } = req.body;
+    if (!phone) {
+      return res.status(400).json({ success: false, message: 'Phone number is required.' });
+    }
+
+    const rawOtp = generate6DigitOTP();
+    const otpSalt = await bcrypt.genSalt(8);
+    const otpHash = await bcrypt.hash(rawOtp, otpSalt);
+    const expiresAt = new Date(Date.now() + 5 * 60 * 1000);
+
+    await OTP.deleteMany({ identifier: phone });
+    await OTP.create({
+      identifier: phone,
+      otpHash,
+      expiresAt,
+      attempts: 0,
+      purpose: 'registration'
+    });
+
+    console.log(`[SMS RESEND OTP] Sent new OTP [ ${rawOtp} ] to Phone: ${phone}`);
+
+    return res.status(200).json({
+      success: true,
+      message: 'A new 6-digit OTP has been sent to your phone number.',
+      demoOTP: rawOtp
+    });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: 'Error resending OTP.' });
+  }
+};
+
+/**
+ * ============================================================================
+ * C. CUSTOMER LOGIN
+ * ============================================================================
+ * Endpoint: POST /api/auth/login
+ */
+export const loginCustomer = async (req, res) => {
   try {
     const { email, password } = req.body;
+
     if (!email || !password) {
-      return res.status(400).json({ message: 'Please provide email and password' });
+      return res.status(400).json({ success: false, message: 'Email and password are required.' });
     }
 
-    const user = await User.findOne({ email });
-    if (user && (await user.matchPassword(password))) {
-      const token = generateToken(user._id);
-      res.json({
-        _id: user._id,
-        name: user.name,
-        email: user.email,
-        phone: user.phone,
-        role: user.role,
-        addresses: user.addresses,
-        wishlist: user.wishlist,
-        token
+    // Generic error message to prevent user enumeration
+    const genericErrorMessage = 'Invalid email or password.';
+
+    const customer = await Customer.findOne({ email: email.toLowerCase().trim() });
+    if (!customer) {
+      return res.status(400).json({ success: false, message: genericErrorMessage });
+    }
+
+    // Check password hash
+    const isPasswordMatch = await bcrypt.compare(password, customer.passwordHash);
+    if (!isPasswordMatch) {
+      return res.status(400).json({ success: false, message: genericErrorMessage });
+    }
+
+    // Check verification status
+    if (!customer.isVerified) {
+      return res.status(403).json({
+        success: false,
+        requiresOTP: true,
+        phone: customer.phone,
+        message: 'Your account is not verified yet. Please complete OTP verification.'
       });
-    } else {
-      res.status(401).json({ message: 'Invalid email or password' });
     }
-  } catch (error) {
-    next(error);
-  }
-};
 
-export const getMe = async (req, res, next) => {
-  try {
-    const user = await User.findById(req.user._id).select('-password').populate('wishlist');
-    res.json(user);
-  } catch (error) {
-    next(error);
-  }
-};
+    // Issue Customer JWT (7 days expiry)
+    const token = jwt.sign(
+      { id: customer._id, role: 'customer', email: customer.email },
+      JWT_SECRET,
+      { expiresIn: '7d' }
+    );
 
-export const updateProfile = async (req, res, next) => {
-  try {
-    const user = await User.findById(req.user._id);
-    if (user) {
-      user.name = req.body.name || user.name;
-      user.phone = req.body.phone !== undefined ? req.body.phone : user.phone;
-      if (req.body.password) {
-        user.password = req.body.password;
+    // Set httpOnly secure cookie
+    res.cookie('customer_token', token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 7 * 24 * 60 * 60 * 1000
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: 'Logged in successfully.',
+      token,
+      user: {
+        _id: customer._id,
+        name: customer.fullName,
+        email: customer.email,
+        phone: customer.phone,
+        role: customer.role
       }
-      const updatedUser = await user.save();
-      res.json({
-        _id: updatedUser._id,
-        name: updatedUser.name,
-        email: updatedUser.email,
-        phone: updatedUser.phone,
-        role: updatedUser.role
+    });
+  } catch (error) {
+    console.error('Customer Login Error:', error);
+    return res.status(500).json({ success: false, message: 'Server error during login.' });
+  }
+};
+
+/**
+ * ============================================================================
+ * D. FORGOT & RESET PASSWORD FLOW
+ * ============================================================================
+ * Endpoint: POST /api/auth/forgot-password
+ */
+export const forgotPassword = async (req, res) => {
+  try {
+    const { email } = req.body;
+    if (!email) {
+      return res.status(400).json({ success: false, message: 'Email address is required.' });
+    }
+
+    const customer = await Customer.findOne({ email: email.toLowerCase().trim() });
+    if (!customer) {
+      // Do not reveal email absence for security
+      return res.status(200).json({
+        success: true,
+        message: 'If an account exists for this email, a password reset link has been sent.'
       });
-    } else {
-      res.status(404).json({ message: 'User not found' });
     }
+
+    // Generate random reset token
+    const resetToken = crypto.randomBytes(32).toString('hex');
+    const tokenHash = crypto.createHash('sha256').update(resetToken).digest('hex');
+    const expiresAt = new Date(Date.now() + 30 * 60 * 1000); // 30 minutes expiry
+
+    await PasswordResetToken.deleteMany({ userId: customer._id });
+    await PasswordResetToken.create({
+      userId: customer._id,
+      tokenHash,
+      expiresAt,
+      used: false
+    });
+
+    const resetUrl = `${process.env.CLIENT_URL || 'http://localhost:5173'}/reset-password?token=${resetToken}`;
+    console.log(`[EMAIL SIMULATION] Sent Password Reset Link to ${customer.email}: ${resetUrl}`);
+
+    return res.status(200).json({
+      success: true,
+      message: 'If an account exists for this email, a password reset link has been sent.',
+      demoResetUrl: resetUrl
+    });
   } catch (error) {
-    next(error);
+    return res.status(500).json({ success: false, message: 'Error processing forgot password.' });
   }
 };
 
-export const addAddress = async (req, res, next) => {
+/**
+ * Endpoint: POST /api/auth/reset-password
+ */
+export const resetPassword = async (req, res) => {
   try {
-    const user = await User.findById(req.user._id);
-    if (!user) return res.status(404).json({ message: 'User not found' });
+    const { token, password, confirmPassword } = req.body;
 
-    const newAddress = {
-      fullName: req.body.fullName,
-      phone: req.body.phone,
-      street: req.body.street,
-      city: req.body.city,
-      state: req.body.state,
-      pincode: req.body.pincode,
-      country: req.body.country || 'India',
-      isDefault: req.body.isDefault || user.addresses.length === 0
-    };
-
-    if (newAddress.isDefault) {
-      user.addresses.forEach(addr => addr.isDefault = false);
+    if (!token || !password) {
+      return res.status(400).json({ success: false, message: 'Token and new password are required.' });
     }
 
-    user.addresses.push(newAddress);
-    await user.save();
-    res.json(user.addresses);
-  } catch (error) {
-    next(error);
-  }
-};
+    if (password.length < 8 || !/(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])/.test(password)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Password must be at least 8 characters with 1 uppercase letter, 1 number, and 1 special character.'
+      });
+    }
 
-export const deleteAddress = async (req, res, next) => {
-  try {
-    const user = await User.findById(req.user._id);
-    if (!user) return res.status(404).json({ message: 'User not found' });
+    if (password !== confirmPassword) {
+      return res.status(400).json({ success: false, message: 'Passwords do not match.' });
+    }
 
-    user.addresses = user.addresses.filter(addr => addr._id.toString() !== req.params.addressId);
-    await user.save();
-    res.json(user.addresses);
+    const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
+    const resetRecord = await PasswordResetToken.findOne({ tokenHash, used: false });
+
+    if (!resetRecord || new Date() > resetRecord.expiresAt) {
+      return res.status(400).json({ success: false, message: 'Password reset link is invalid or has expired.' });
+    }
+
+    // Update customer password
+    const customer = await Customer.findById(resetRecord.userId);
+    if (!customer) {
+      return res.status(400).json({ success: false, message: 'Customer account not found.' });
+    }
+
+    const salt = await bcrypt.genSalt(BCRYPT_SALT_ROUNDS);
+    customer.passwordHash = await bcrypt.hash(password, salt);
+    await customer.save();
+
+    // Mark token as used
+    resetRecord.used = true;
+    await resetRecord.save();
+
+    return res.status(200).json({
+      success: true,
+      message: 'Your password has been reset successfully. You may now sign in with your new password.'
+    });
   } catch (error) {
-    next(error);
+    return res.status(500).json({ success: false, message: 'Error resetting password.' });
   }
 };

@@ -1,9 +1,11 @@
 import express from 'express';
 import cors from 'cors';
+import helmet from 'helmet';
 import morgan from 'morgan';
 import dotenv from 'dotenv';
 import { connectDB } from './config/db.js';
 import authRoutes from './routes/authRoutes.js';
+import adminAuthRoutes from './routes/adminAuthRoutes.js';
 import productRoutes from './routes/productRoutes.js';
 import orderRoutes from './routes/orderRoutes.js';
 import reviewRoutes from './routes/reviewRoutes.js';
@@ -17,6 +19,8 @@ dotenv.config();
 
 const app = express();
 
+// Security Hardening Middleware
+app.use(helmet({ contentSecurityPolicy: false }));
 app.use(cors({
   origin: '*',
   credentials: true
@@ -28,13 +32,16 @@ app.use(morgan('dev'));
 // Connect DB
 connectDB();
 
-// API Routes
+// Separate Express Routers for Customer and Admin Auth
 app.use('/api/auth', authRoutes);
+app.use('/api/admin/auth', adminAuthRoutes);
+
+// Admin Suite & Business API Routes
+app.use('/api/admin', adminRoutes);
 app.use('/api/products', productRoutes);
 app.use('/api/orders', orderRoutes);
 app.use('/api/reviews', reviewRoutes);
 app.use('/api/blogs', blogRoutes);
-app.use('/api/admin', adminRoutes);
 app.use('/api/chat', chatRoutes);
 app.use('/api/payment', paymentRoutes);
 
