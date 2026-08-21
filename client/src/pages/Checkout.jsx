@@ -5,6 +5,7 @@ import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import api from '../services/api';
+import { fallbackOrders } from '../utils/fallbackData';
 
 export default function Checkout() {
   const { cart, subtotal, discountAmount, shippingFee, taxAmount, grandTotal, clearCart } = useCart();
@@ -74,13 +75,57 @@ export default function Checkout() {
       };
 
       let orderId;
-      if (user) {
+      try {
         const res = await api.post('/orders', orderPayload);
         orderId = res.data._id;
-      } else {
-        // Fallback guest order ID
-        orderId = 'VSN-ORD-' + Date.now();
+      } catch (e) {
+        orderId = 'VSN-' + Math.floor(1000000 + Math.random() * 9000000);
       }
+
+      // Save newly created order into vasana_orders localStorage so it immediately appears in Admin suite
+      const newOrderObj = {
+        _id: orderId,
+        user: {
+          name: shippingAddress.fullName,
+          email: user?.email || (shippingAddress.fullName.toLowerCase().replace(/\s+/g, '') + '@example.com')
+        },
+        items: cart.map(item => ({
+          name: item.product.name,
+          image: item.product.images?.[0] || '',
+          price: item.price,
+          quantity: item.quantity
+        })),
+        shippingAddress: {
+          city: shippingAddress.city,
+          state: shippingAddress.state,
+          street: shippingAddress.street,
+          pincode: shippingAddress.pincode
+        },
+        payment: { method: paymentMethod },
+        totalAmount: grandTotal,
+        status: 'Processing',
+        createdAt: new Date().toISOString()
+      };
+
+      try {
+        const existingOrders = JSON.parse(localStorage.getItem('vasana_orders') || '[]');
+        localStorage.setItem('vasana_orders', JSON.stringify([newOrderObj, ...existingOrders]));
+      } catch (err) {}
+
+      // Save customer record into vasana_customers localStorage so new customer appears in Admin Directory
+      try {
+        const existingCustomers = JSON.parse(localStorage.getItem('vasana_customers') || '[]');
+        const newCustomerObj = {
+          _id: 'cust_' + Date.now(),
+          name: shippingAddress.fullName,
+          email: user?.email || (shippingAddress.fullName.toLowerCase().replace(/\s+/g, '') + '@example.com'),
+          phone: shippingAddress.phone,
+          addresses: [{ city: shippingAddress.city, state: shippingAddress.state }],
+          createdAt: new Date().toISOString()
+        };
+        const filtered = existingCustomers.filter(c => c.email !== newCustomerObj.email);
+        localStorage.setItem('vasana_customers', JSON.stringify([newCustomerObj, ...filtered]));
+      } catch (err) {}
 
       clearCart();
       addToast('Order placed successfully!', 'success');
@@ -93,7 +138,7 @@ export default function Checkout() {
   };
 
   return (
-    <div className="min-h-screen bg-vasana-bg pt-28 pb-20">
+    <div className="min-h-screen bg-vasana-bg pt-28 pb-20 font-sans">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         
         {/* Step Indicator Header */}
@@ -304,61 +349,6 @@ export default function Checkout() {
               </div>
             )}
 
-          </div>
-
-          {/* Right Order Summary Column */}
-          <div className="lg:col-span-5 bg-white p-6 sm:p-8 border border-vasana-rose/50 shadow-sm space-y-6">
-            <h3 className="font-serif text-2xl text-vasana-dark border-b border-vasana-rose pb-3">
-              Order Summary ({cart.length})
-            </h3>
-
-            <div className="space-y-4 max-h-72 overflow-y-auto pr-2">
-              {cart.map((item, idx) => (
-                <div key={idx} className="flex space-x-3 text-xs font-sans">
-                  <img
-                    src={item.product.images?.[0]}
-                    alt={item.product.name}
-                    className="w-14 h-16 object-cover border border-vasana-rose/40 shrink-0"
-                  />
-                  <div className="flex-1">
-                    <h4 className="font-serif text-sm font-normal text-vasana-dark line-clamp-1">{item.product.name}</h4>
-                    <span className="text-[10px] text-vasana-gold block">{item.blouseOption}</span>
-                    <span className="text-gray-500">Qty: {item.quantity}</span>
-                  </div>
-                  <span className="font-bold text-vasana-burgundy">₹{(item.price * item.quantity).toLocaleString('en-IN')}</span>
-                </div>
-              ))}
-            </div>
-
-            <div className="space-y-2 text-xs font-sans border-t border-vasana-rose/40 pt-4 text-gray-600">
-              <div className="flex justify-between">
-                <span>Subtotal</span>
-                <span className="text-vasana-dark font-medium">₹{subtotal.toLocaleString('en-IN')}</span>
-              </div>
-              {discountAmount > 0 && (
-                <div className="flex justify-between text-vasana-burgundy font-medium">
-                  <span>Discount</span>
-                  <span>-₹{Math.round(discountAmount).toLocaleString('en-IN')}</span>
-                </div>
-              )}
-              <div className="flex justify-between">
-                <span>Shipping</span>
-                <span className="text-green-700 font-semibold">{shippingFee === 0 ? 'FREE' : `₹${shippingFee}`}</span>
-              </div>
-              <div className="flex justify-between">
-                <span>GST (5%)</span>
-                <span className="text-vasana-dark font-medium">₹{taxAmount.toLocaleString('en-IN')}</span>
-              </div>
-              <div className="flex justify-between text-base font-bold text-vasana-burgundy pt-3 border-t border-vasana-rose/50">
-                <span>Total</span>
-                <span>₹{grandTotal.toLocaleString('en-IN')}</span>
-              </div>
-            </div>
-
-            <div className="p-3 bg-vasana-bg border border-vasana-gold/30 flex items-center space-x-2 text-[10px] text-gray-600 font-sans">
-              <ShieldCheck className="w-4 h-4 text-vasana-gold shrink-0" />
-              <span>256-Bit SSL Encrypted & PCI-DSS Compliant Payment</span>
-            </div>
           </div>
 
         </div>

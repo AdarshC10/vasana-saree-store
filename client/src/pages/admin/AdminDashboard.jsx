@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { ShieldCheck, Package, ShoppingCart, Users, DollarSign, AlertTriangle, ArrowUpRight } from 'lucide-react';
+import { ShieldCheck, Package, ShoppingCart, Users, DollarSign, AlertTriangle } from 'lucide-react';
 import api from '../../services/api';
-import { fallbackAdminStats } from '../../utils/fallbackData';
+import { fallbackAdminStats, fallbackOrders, fallbackCustomers } from '../../utils/fallbackData';
 
 export default function AdminDashboard() {
   const [stats, setStats] = useState(fallbackAdminStats);
@@ -12,23 +12,47 @@ export default function AdminDashboard() {
   }, []);
 
   const fetchStats = async () => {
+    let serverStats = null;
     try {
       const res = await api.get('/admin/stats');
       if (res.data && typeof res.data === 'object' && res.data.totalRevenue !== undefined) {
-        setStats(res.data);
-      } else {
-        setStats(fallbackAdminStats);
+        serverStats = res.data;
       }
-    } catch (error) {
-      setStats(fallbackAdminStats);
-    }
+    } catch (error) {}
+
+    // Load local storage orders and customers placed in current session
+    let localOrders = [];
+    let localCustomers = [];
+    try {
+      localOrders = JSON.parse(localStorage.getItem('vasana_orders') || '[]');
+      localCustomers = JSON.parse(localStorage.getItem('vasana_customers') || '[]');
+    } catch (e) {}
+
+    const combinedOrders = [...localOrders, ...(serverStats?.recentOrders || fallbackOrders)];
+    const uniqueOrders = combinedOrders.filter((v, i, a) => a.findIndex(t => t._id === v._id) === i);
+
+    const combinedCustomers = [...localCustomers, ...fallbackCustomers];
+    const uniqueCustomers = combinedCustomers.filter((v, i, a) => a.findIndex(t => t.email === v.email) === i);
+
+    // Compute live metrics
+    const addedRevenue = localOrders.reduce((sum, o) => sum + (o.totalAmount || 0), 0);
+
+    setStats({
+      totalRevenue: (serverStats?.totalRevenue || 1245000) + addedRevenue,
+      totalOrders: (serverStats?.totalOrders || 48) + localOrders.length,
+      totalCustomers: (serverStats?.totalCustomers || 142) + localCustomers.length,
+      totalProducts: serverStats?.totalProducts || 30,
+      pendingOrders: (serverStats?.pendingOrders || 3) + localOrders.length,
+      lowStockProducts: serverStats?.lowStockProducts || fallbackAdminStats.lowStockProducts,
+      recentOrders: uniqueOrders
+    });
   };
 
   const recentOrders = Array.isArray(stats?.recentOrders) ? stats.recentOrders : fallbackAdminStats.recentOrders;
   const lowStock = Array.isArray(stats?.lowStockProducts) ? stats.lowStockProducts : fallbackAdminStats.lowStockProducts;
 
   return (
-    <div className="min-h-screen bg-vasana-bg pt-28 pb-20">
+    <div className="min-h-screen bg-vasana-bg pt-28 pb-20 font-sans">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8 text-vasana-dark">
         
         {/* Admin Header */}
@@ -129,7 +153,7 @@ export default function AdminDashboard() {
                 <tbody className="divide-y divide-gray-100">
                   {recentOrders.map((ord) => (
                     <tr key={ord._id} className="hover:bg-vasana-bg/50">
-                      <td className="p-3 font-mono font-bold text-vasana-burgundy">{ord._id.substring(0, 10)}...</td>
+                      <td className="p-3 font-mono font-bold text-vasana-burgundy">{ord._id.substring(0, 12)}</td>
                       <td className="p-3">{ord.user?.name || 'Customer'}</td>
                       <td className="p-3 font-bold">₹{ord.totalAmount?.toLocaleString('en-IN')}</td>
                       <td className="p-3">

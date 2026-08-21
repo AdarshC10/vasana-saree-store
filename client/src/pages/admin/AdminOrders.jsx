@@ -7,7 +7,7 @@ import { fallbackOrders } from '../../utils/fallbackData';
 const statusOptions = ['Pending', 'Confirmed', 'Processing', 'Shipped', 'Out for Delivery', 'Delivered', 'Cancelled', 'Returned'];
 
 export default function AdminOrders() {
-  const [orders, setOrders] = useState(fallbackOrders);
+  const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(false);
   const [filterStatus, setFilterStatus] = useState('All');
   const [searchQuery, setSearchQuery] = useState('');
@@ -20,18 +20,26 @@ export default function AdminOrders() {
 
   const fetchOrders = async () => {
     setLoading(true);
+    let serverOrders = [];
     try {
       const res = await api.get('/orders/admin/all');
       if (Array.isArray(res.data) && res.data.length > 0) {
-        setOrders(res.data);
-      } else {
-        setOrders(fallbackOrders);
+        serverOrders = res.data;
       }
-    } catch (error) {
-      setOrders(fallbackOrders);
-    } finally {
-      setLoading(false);
-    }
+    } catch (error) {}
+
+    // Load local storage orders placed in current session
+    let localOrders = [];
+    try {
+      localOrders = JSON.parse(localStorage.getItem('vasana_orders') || '[]');
+    } catch (e) {}
+
+    // Combine local placed orders + server orders + fallback orders without duplicates
+    const combined = [...localOrders, ...serverOrders, ...fallbackOrders];
+    const uniqueOrders = combined.filter((v, i, a) => a.findIndex(t => t._id === v._id) === i);
+
+    setOrders(uniqueOrders);
+    setLoading(false);
   };
 
   const handleUpdateStatus = async (orderId, newStatus) => {
@@ -41,18 +49,24 @@ export default function AdminOrders() {
       fetchOrders();
     } catch (error) {
       setOrders((prev) => prev.map(o => o._id === orderId ? { ...o, status: newStatus } : o));
+      // Update local storage
+      try {
+        const local = JSON.parse(localStorage.getItem('vasana_orders') || '[]');
+        const updated = local.map(o => o._id === orderId ? { ...o, status: newStatus } : o);
+        localStorage.setItem('vasana_orders', JSON.stringify(updated));
+      } catch(e){}
       addToast(`Order status updated to "${newStatus}"`, 'success');
     }
   };
 
-  const filteredOrders = (Array.isArray(orders) ? orders : fallbackOrders).filter((o) => {
+  const filteredOrders = orders.filter((o) => {
     const matchesStatus = filterStatus === 'All' || o.status === filterStatus;
     const matchesSearch = !searchQuery || o._id.toLowerCase().includes(searchQuery.toLowerCase()) || o.user?.name?.toLowerCase().includes(searchQuery.toLowerCase());
     return matchesStatus && matchesSearch;
   });
 
   return (
-    <div className="min-h-screen bg-vasana-bg pt-28 pb-20 text-vasana-dark">
+    <div className="min-h-screen bg-vasana-bg pt-28 pb-20 text-vasana-dark font-sans">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
         
         <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-vasana-rose pb-4 gap-4">
@@ -68,7 +82,7 @@ export default function AdminOrders() {
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search order ID or client..."
-                className="bg-white border px-3 py-2 text-xs w-48 font-sans focus:outline-none"
+                className="bg-white border border-gray-300 px-3 py-2 text-xs w-48 font-sans focus:outline-none"
               />
               <Search className="w-4 h-4 text-gray-400 absolute right-2 top-2.5" />
             </div>
@@ -76,7 +90,7 @@ export default function AdminOrders() {
             <select
               value={filterStatus}
               onChange={(e) => setFilterStatus(e.target.value)}
-              className="bg-white border px-3 py-2 text-xs font-sans focus:outline-none"
+              className="bg-white border border-gray-300 px-3 py-2 text-xs font-sans focus:outline-none"
             >
               <option value="All">All Statuses</option>
               {statusOptions.map((s) => <option key={s} value={s}>{s}</option>)}
@@ -103,8 +117,8 @@ export default function AdminOrders() {
                 <tr key={ord._id} className="hover:bg-vasana-bg/50">
                   <td className="p-3 font-mono font-bold text-vasana-burgundy">{ord._id}</td>
                   <td className="p-3">
-                    <strong className="block">{ord.user?.name || 'Priya S.'}</strong>
-                    <span className="text-[10px] text-gray-500">{ord.shippingAddress?.city}, {ord.shippingAddress?.state}</span>
+                    <strong className="block">{ord.user?.name || 'Customer'}</strong>
+                    <span className="text-[10px] text-gray-500">{ord.shippingAddress?.city || 'India'}, {ord.shippingAddress?.state || ''}</span>
                   </td>
                   <td className="p-3">
                     <span className="font-bold">{ord.items?.length || 1} saree(s)</span>

@@ -4,7 +4,7 @@ import api from '../../services/api';
 import { fallbackCustomers } from '../../utils/fallbackData';
 
 export default function AdminCustomers() {
-  const [customers, setCustomers] = useState(fallbackCustomers);
+  const [customers, setCustomers] = useState([]);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -13,22 +13,29 @@ export default function AdminCustomers() {
 
   const fetchCustomers = async () => {
     setLoading(true);
+    let serverCustomers = [];
     try {
       const res = await api.get('/admin/customers');
       if (Array.isArray(res.data) && res.data.length > 0) {
-        setCustomers(res.data);
-      } else {
-        setCustomers(fallbackCustomers);
+        serverCustomers = res.data;
       }
-    } catch (error) {
-      setCustomers(fallbackCustomers);
-    } finally {
-      setLoading(false);
-    }
+    } catch (error) {}
+
+    // Load local storage customers registered or created during checkout
+    let localCustomers = [];
+    try {
+      localCustomers = JSON.parse(localStorage.getItem('vasana_customers') || '[]');
+    } catch (e) {}
+
+    const combined = [...localCustomers, ...serverCustomers, ...fallbackCustomers];
+    const uniqueCustomers = combined.filter((v, i, a) => a.findIndex(t => t.email === v.email) === i);
+
+    setCustomers(uniqueCustomers);
+    setLoading(false);
   };
 
   return (
-    <div className="min-h-screen bg-vasana-bg pt-28 pb-20 text-vasana-dark">
+    <div className="min-h-screen bg-vasana-bg pt-28 pb-20 text-vasana-dark font-sans">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
         
         <div className="border-b border-vasana-rose pb-4">
@@ -49,8 +56,8 @@ export default function AdminCustomers() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
-              {Array.isArray(customers) && customers.map((cust) => (
-                <tr key={cust._id} className="hover:bg-vasana-bg/50">
+              {customers.map((cust) => (
+                <tr key={cust._id || cust.email} className="hover:bg-vasana-bg/50">
                   <td className="p-3 font-bold font-serif text-sm">{cust.name}</td>
                   <td className="p-3">{cust.email}</td>
                   <td className="p-3">{cust.phone || 'N/A'}</td>

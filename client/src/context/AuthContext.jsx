@@ -14,16 +14,29 @@ export const AuthProvider = ({ children }) => {
 
   useEffect(() => {
     if (user && user.token && !user.token.startsWith('mock_')) {
-      // Validate session with live backend if available
       api.get('/auth/me')
         .then((res) => {
           setUser((prev) => ({ ...prev, ...res.data }));
         })
-        .catch(() => {
-          // Keep saved session if server is unreachable
-        });
+        .catch(() => {});
     }
   }, []);
+
+  const saveCustomerLocal = (u) => {
+    try {
+      const existing = JSON.parse(localStorage.getItem('vasana_customers') || '[]');
+      const newCustomerObj = {
+        _id: u._id || ('cust_' + Date.now()),
+        name: u.name,
+        email: u.email,
+        phone: u.phone || '',
+        addresses: u.addresses || [],
+        createdAt: new Date().toISOString()
+      };
+      const filtered = existing.filter(c => c.email !== u.email);
+      localStorage.setItem('vasana_customers', JSON.stringify([newCustomerObj, ...filtered]));
+    } catch (e) {}
+  };
 
   const login = async (email, password) => {
     setLoading(true);
@@ -32,27 +45,17 @@ export const AuthProvider = ({ children }) => {
       const userData = res.data;
       setUser(userData);
       localStorage.setItem('vasana_user', JSON.stringify(userData));
+      if (userData.role !== 'admin') saveCustomerLocal(userData);
       addToast(`Welcome back, ${userData.name}!`, 'success');
       return userData;
     } catch (error) {
-      // Fallback demo authentication if backend is offline/unreachable on Vercel preview:
       if (email === 'admin@example.com' && password === 'admin123') {
         const mockAdmin = {
           _id: 'admin_demo_id',
           name: 'VASANA Administrator',
           email: 'admin@example.com',
           role: 'admin',
-          addresses: [{
-            _id: 'addr_admin_1',
-            fullName: 'VASANA HQ',
-            phone: '+91 9876543210',
-            street: '108 Fashion Avenue, Jubilee Hills',
-            city: 'Hyderabad',
-            state: 'Telangana',
-            pincode: '500033',
-            country: 'India',
-            isDefault: true
-          }],
+          addresses: [],
           token: 'mock_admin_token'
         };
         setUser(mockAdmin);
@@ -80,6 +83,7 @@ export const AuthProvider = ({ children }) => {
         };
         setUser(mockCustomer);
         localStorage.setItem('vasana_user', JSON.stringify(mockCustomer));
+        saveCustomerLocal(mockCustomer);
         addToast(`Welcome back, ${mockCustomer.name}!`, 'success');
         return mockCustomer;
       }
@@ -97,10 +101,10 @@ export const AuthProvider = ({ children }) => {
       const userData = res.data;
       setUser(userData);
       localStorage.setItem('vasana_user', JSON.stringify(userData));
+      saveCustomerLocal(userData);
       addToast('Registration successful! Welcome to VASANA.', 'success');
       return userData;
     } catch (error) {
-      // Fallback registration if backend is offline on Vercel preview:
       const newMockUser = {
         _id: 'user_' + Date.now(),
         name,
@@ -112,6 +116,7 @@ export const AuthProvider = ({ children }) => {
       };
       setUser(newMockUser);
       localStorage.setItem('vasana_user', JSON.stringify(newMockUser));
+      saveCustomerLocal(newMockUser);
       addToast('Registration successful! Welcome to VASANA.', 'success');
       return newMockUser;
     } finally {
@@ -131,12 +136,14 @@ export const AuthProvider = ({ children }) => {
       const updated = { ...user, ...res.data };
       setUser(updated);
       localStorage.setItem('vasana_user', JSON.stringify(updated));
+      saveCustomerLocal(updated);
       addToast('Profile updated successfully.', 'success');
       return updated;
     } catch (error) {
       const updated = { ...user, ...profileData };
       setUser(updated);
       localStorage.setItem('vasana_user', JSON.stringify(updated));
+      saveCustomerLocal(updated);
       addToast('Profile updated successfully.', 'success');
       return updated;
     }
