@@ -2,8 +2,10 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
 import Customer from '../models/Customer.js';
+import Admin from '../models/Admin.js';
 import OTP from '../models/OTP.js';
 import PasswordResetToken from '../models/PasswordResetToken.js';
+import AdminLoginLog from '../models/AdminLoginLog.js';
 import dotenv from 'dotenv';
 
 dotenv.config();
@@ -205,7 +207,7 @@ export const resendOTP = async (req, res) => {
 
 /**
  * ============================================================================
- * C. CUSTOMER LOGIN
+ * C. UNIFIED LOGIN (SUPPORTING BOTH CUSTOMER & ADMIN ACCOUNTS FROM 1 PAGE)
  * ============================================================================
  * Endpoint: POST /api/auth/login
  */
@@ -217,7 +219,45 @@ export const loginCustomer = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Email and password are required.' });
     }
 
-    const customer = await Customer.findOne({ email: email.toLowerCase().trim() });
+    const cleanEmail = email.toLowerCase().trim();
+
+    // 1. CHECK IF EMAIL MATCHES AN AUTHORIZED ADMIN IN MONGODB
+    const admin = await Admin.findOne({ email: cleanEmail });
+    if (admin) {
+      const isAdminMatch = await bcrypt.compare(password, admin.passwordHash);
+      if (!isAdminMatch) {
+        return res.status(400).json({ success: false, message: 'Invalid email or password.' });
+      }
+
+      // MANDATORY 2FA FOR ADMIN
+      const rawOtp = generate6DigitOTP();
+      const otpSalt = await bcrypt.genSalt(8);
+      const otpHash = await bcrypt.hash(rawOtp, otpSalt);
+      const expiresAt = new Date(Date.now() + 5 * 60 * 1000);
+
+      await OTP.deleteMany({ identifier: admin.email, purpose: 'admin-2fa' });
+      await OTP.create({
+        identifier: admin.email,
+        otpHash,
+        expiresAt,
+        attempts: 0,
+        purpose: 'admin-2fa'
+      });
+
+      console.log(`[UNIFIED LOGIN ADMIN 2FA] 2FA OTP [ ${rawOtp} ] for Admin: ${admin.email}`);
+
+      return res.status(200).json({
+        success: true,
+        isAdmin: true,
+        requires2FA: true,
+        message: 'Admin credentials verified. 2FA verification required.',
+        email: admin.email,
+        demo2FAOTP: rawOtp
+      });
+    }
+
+    // 2. CHECK IF EMAIL MATCHES A REGISTERED CUSTOMER IN MONGODB
+    const customer = await Customer.findOne({ email: cleanEmail });
     if (!customer) {
       return res.status(400).json({
         success: false,
@@ -226,7 +266,7 @@ export const loginCustomer = async (req, res) => {
       });
     }
 
-    // Check password hash
+    // Check password hash for customer
     const isPasswordMatch = await bcrypt.compare(password, customer.passwordHash);
     if (!isPasswordMatch) {
       return res.status(400).json({
@@ -235,7 +275,7 @@ export const loginCustomer = async (req, res) => {
       });
     }
 
-    // Check verification status
+    // Check verification status for customer
     if (!customer.isVerified) {
       return res.status(403).json({
         success: false,
@@ -273,7 +313,7 @@ export const loginCustomer = async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('Customer Login Error:', error);
+    console.error('Unified Login Error:', error);
     return res.status(500).json({ success: false, message: 'Server error during login.' });
   }
 };
@@ -293,17 +333,15 @@ export const forgotPassword = async (req, res) => {
 
     const customer = await Customer.findOne({ email: email.toLowerCase().trim() });
     if (!customer) {
-      // Do not reveal email absence for security
       return res.status(200).json({
         success: true,
         message: 'If an account exists for this email, a password reset link has been sent.'
       });
     }
 
-    // Generate random reset token
     const resetToken = crypto.randomBytes(32).toString('hex');
     const tokenHash = crypto.createHash('sha256').update(resetToken).digest('hex');
-    const expiresAt = new Date(Date.now() + 30 * 60 * 1000); // 30 minutes expiry
+    const expiresAt = new Date(Date.now() + 30 * 60 * 1000);
 
     await PasswordResetToken.deleteMany({ userId: customer._id });
     await PasswordResetToken.create({
@@ -355,7 +393,6 @@ export const resetPassword = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Password reset link is invalid or has expired.' });
     }
 
-    // Update customer password
     const customer = await Customer.findById(resetRecord.userId);
     if (!customer) {
       return res.status(400).json({ success: false, message: 'Customer account not found.' });
@@ -365,7 +402,6 @@ export const resetPassword = async (req, res) => {
     customer.passwordHash = await bcrypt.hash(password, salt);
     await customer.save();
 
-    // Mark token as used
     resetRecord.used = true;
     await resetRecord.save();
 
