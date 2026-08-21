@@ -8,11 +8,19 @@ export default function OrderSuccess() {
   const [order, setOrder] = useState(null);
 
   useEffect(() => {
-    if (id && !id.startsWith('VSN-ORD-')) {
-      api.get(`/orders/${id}`)
-        .then((res) => setOrder(res.data))
-        .catch(() => {});
-    }
+    try {
+      const local = JSON.parse(localStorage.getItem('vasana_orders') || '[]');
+      const found = local.find(o => o._id === id);
+      if (found) {
+        setOrder(found);
+      } else if (id) {
+        api.get(`/orders/${id}`)
+          .then((res) => {
+            if (res.data && typeof res.data === 'object' && res.data._id) setOrder(res.data);
+          })
+          .catch(() => {});
+      }
+    } catch(e){}
   }, [id]);
 
   const trackingCode = order?.trackingCode || 'VSN-784920';
