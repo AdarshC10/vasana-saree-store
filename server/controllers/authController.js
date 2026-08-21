@@ -229,30 +229,31 @@ export const loginCustomer = async (req, res) => {
         return res.status(400).json({ success: false, message: 'Invalid email or password.' });
       }
 
-      // MANDATORY 2FA FOR ADMIN
-      const rawOtp = generate6DigitOTP();
-      const otpSalt = await bcrypt.genSalt(8);
-      const otpHash = await bcrypt.hash(rawOtp, otpSalt);
-      const expiresAt = new Date(Date.now() + 5 * 60 * 1000);
+      // Issue Admin JWT (4 hours expiry)
+      const token = jwt.sign(
+        { id: admin._id, role: admin.role, email: admin.email, isAdmin: true },
+        JWT_SECRET,
+        { expiresIn: '4h' }
+      );
 
-      await OTP.deleteMany({ identifier: admin.email, purpose: 'admin-2fa' });
-      await OTP.create({
-        identifier: admin.email,
-        otpHash,
-        expiresAt,
-        attempts: 0,
-        purpose: 'admin-2fa'
+      res.cookie('admin_token', token, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        maxAge: 4 * 60 * 60 * 1000
       });
-
-      console.log(`[UNIFIED LOGIN ADMIN 2FA] 2FA OTP [ ${rawOtp} ] for Admin: ${admin.email}`);
 
       return res.status(200).json({
         success: true,
-        isAdmin: true,
-        requires2FA: true,
-        message: 'Admin credentials verified. 2FA verification required.',
-        email: admin.email,
-        demo2FAOTP: rawOtp
+        message: 'Admin logged in successfully.',
+        token,
+        user: {
+          _id: admin._id,
+          name: admin.name,
+          email: admin.email,
+          role: admin.role,
+          isAdmin: true
+        }
       });
     }
 
