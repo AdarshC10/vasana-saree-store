@@ -15,6 +15,8 @@ import VasanaJournalSection from '../components/VasanaJournalSection';
 import api from '../services/api';
 import { fallbackProducts } from '../utils/fallbackData';
 
+import SareeCardShowcase from '../components/SareeCardShowcase';
+
 export default function Home() {
   const [products, setProducts] = useState(fallbackProducts);
 
@@ -39,7 +41,10 @@ export default function Home() {
       {/* 2. Shop by Moment */}
       <ShopByMood />
 
-      {/* 3. New Arrivals */}
+      {/* 3. 8 Luxury Saree Card UI Design Showcase */}
+      <SareeCardShowcase />
+
+      {/* 4. New Arrivals */}
       <NewArrivalsSection products={products} />
 
       {/* 4. Our Signature Sarees */}
