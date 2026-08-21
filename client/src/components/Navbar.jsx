@@ -19,6 +19,9 @@ export default function Navbar() {
   const location = useLocation();
   const isHome = location.pathname === '/';
 
+  // Do not render main website Navbar inside dedicated Admin Suite
+  if (location.pathname.startsWith('/admin')) return null;
+
   useEffect(() => {
     const handleScroll = () => {
       if (window.scrollY > 40) {
@@ -267,9 +270,9 @@ export default function Navbar() {
                   </Link>
                   <button
                     onClick={() => { logout(); setMobileMenuOpen(false); }}
-                    className="block w-full text-center py-2 text-xs text-red-600 font-medium"
+                    className="block w-full text-center py-2 text-xs text-[#241C18] hover:text-[#B4975A]"
                   >
-                    Logout
+                    Sign Out
                   </button>
                 </div>
               ) : (

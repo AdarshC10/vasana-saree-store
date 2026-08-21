@@ -1,11 +1,14 @@
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { ArrowRight, Instagram, Facebook, PinIcon as Pinterest } from 'lucide-react';
 import { useToast } from '../context/ToastContext';
 
 export default function Footer() {
   const [email, setEmail] = useState('');
   const { addToast } = useToast();
+  const location = useLocation();
+
+  if (location.pathname.startsWith('/admin')) return null;
 
   const handleSubscribe = (e) => {
     e.preventDefault();

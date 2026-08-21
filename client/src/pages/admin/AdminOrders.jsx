@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Search, Filter, Download, Eye, ChevronLeft, ChevronRight, CheckCircle2, Clock, XCircle, Truck, Package } from 'lucide-react';
 import AdminLayout from '../../components/admin/AdminLayout';
 import { useToast } from '../../context/ToastContext';
+import { downloadCSV } from '../../utils/excelExport';
 
 const orderTabs = ['All Orders', 'Pending', 'Processing', 'Shipped', 'Delivered', 'Cancelled'];
 
@@ -44,7 +45,10 @@ export default function AdminOrders() {
   };
 
   const handleExport = () => {
-    addToast('Exporting orders report as CSV...', 'info');
+    const headers = ['Order ID', 'Customer Name', 'Email', 'City', 'Date', 'Total Amount (INR)', 'Payment Method', 'Status', 'Items'];
+    const rows = filteredOrders.map(o => [o.id, o.customer, o.email, o.city, o.date, o.total, o.payment, o.status, o.items]);
+    downloadCSV('VASANA_Orders_Export', headers, rows);
+    addToast('Downloaded Orders spreadsheet (CSV)', 'success');
   };
 
   return (
