@@ -27,11 +27,16 @@ import Account from './pages/Account';
 import Login from './pages/Login';
 import Register from './pages/Register';
 
-// Admin Pages
+// Admin Suite Pages (Dedicated Screens)
 import AdminDashboard from './pages/admin/AdminDashboard';
-import AdminProducts from './pages/admin/AdminProducts';
 import AdminOrders from './pages/admin/AdminOrders';
+import AdminProducts from './pages/admin/AdminProducts';
+import AdminInventory from './pages/admin/AdminInventory';
 import AdminCustomers from './pages/admin/AdminCustomers';
+import AdminReports from './pages/admin/AdminReports';
+import AdminPayments from './pages/admin/AdminPayments';
+import AdminCoupons from './pages/admin/AdminCoupons';
+import AdminSettings from './pages/admin/AdminSettings';
 
 // Protected Admin Route Wrapper
 const AdminRoute = ({ children }) => {
@@ -81,11 +86,16 @@ export default function App() {
                     
                     <Route path="/account" element={<UserRoute><Account /></UserRoute>} />
 
-                    {/* Admin Protected Routes */}
+                    {/* VASANA Administration Suite (9 Dedicated Pages) */}
                     <Route path="/admin" element={<AdminRoute><AdminDashboard /></AdminRoute>} />
-                    <Route path="/admin/products" element={<AdminRoute><AdminProducts /></AdminRoute>} />
                     <Route path="/admin/orders" element={<AdminRoute><AdminOrders /></AdminRoute>} />
+                    <Route path="/admin/products" element={<AdminRoute><AdminProducts /></AdminRoute>} />
+                    <Route path="/admin/inventory" element={<AdminRoute><AdminInventory /></AdminRoute>} />
                     <Route path="/admin/customers" element={<AdminRoute><AdminCustomers /></AdminRoute>} />
+                    <Route path="/admin/reports" element={<AdminRoute><AdminReports /></AdminRoute>} />
+                    <Route path="/admin/payments" element={<AdminRoute><AdminPayments /></AdminRoute>} />
+                    <Route path="/admin/coupons" element={<AdminRoute><AdminCoupons /></AdminRoute>} />
+                    <Route path="/admin/settings" element={<AdminRoute><AdminSettings /></AdminRoute>} />
 
                     <Route path="*" element={<Navigate to="/" replace />} />
                   </Routes>

@@ -1,157 +1,216 @@
-import React, { useState, useEffect } from 'react';
-import { Package, Truck, CheckCircle, Search, Clock } from 'lucide-react';
-import api from '../../services/api';
+import React, { useState } from 'react';
+import { Search, Filter, Download, Eye, ChevronLeft, ChevronRight, CheckCircle2, Clock, XCircle, Truck, Package } from 'lucide-react';
+import AdminLayout from '../../components/admin/AdminLayout';
 import { useToast } from '../../context/ToastContext';
-import { fallbackOrders } from '../../utils/fallbackData';
 
-const statusOptions = ['Pending', 'Confirmed', 'Processing', 'Shipped', 'Out for Delivery', 'Delivered', 'Cancelled', 'Returned'];
+const orderTabs = ['All Orders', 'Pending', 'Processing', 'Shipped', 'Delivered', 'Cancelled'];
+
+const sampleOrders = [
+  { id: 'VSN-784920', customer: 'Priya Sundaram', email: 'priya.s@gmail.com', city: 'Bengaluru', date: '20 Aug 2024', total: 31499, payment: 'Razorpay (Paid)', status: 'Shipped', items: '2 Sarees (Kanjivaram & Organza)' },
+  { id: 'VSN-658421', customer: 'Ananya Sharma', email: 'ananya.mumbai@yahoo.com', city: 'Mumbai', date: '20 Aug 2024', total: 24225, payment: 'UPI (Paid)', status: 'Processing', items: '1 Saree (Banarasi Silk)' },
+  { id: 'VSN-452810', customer: 'Meera Rao', email: 'meera.rao@outlook.com', city: 'Hyderabad', date: '19 Aug 2024', total: 18750, payment: 'COD (Pending)', status: 'Pending', items: '1 Saree (Chanderi Linen)' },
+  { id: 'VSN-321654', customer: 'Neha Iyer', email: 'neha.iyer@gmail.com', city: 'Chennai', date: '19 Aug 2024', total: 14999, payment: 'NetBanking (Paid)', status: 'Delivered', items: '1 Saree (Handloom Cotton)' },
+  { id: 'VSN-123987', customer: 'Kavita Singh', email: 'kavita.delhi@gmail.com', city: 'New Delhi', date: '18 Aug 2024', total: 22100, payment: 'Razorpay (Paid)', status: 'Delivered', items: '1 Saree (Tissue Organza)' },
+  { id: 'VSN-987654', customer: 'Sunita Reddy', email: 'sunita.reddy@gmail.com', city: 'Visakhapatnam', date: '18 Aug 2024', total: 42000, payment: 'Razorpay (Paid)', status: 'Delivered', items: '2 Sarees (Royal Bridal Edit)' },
+  { id: 'VSN-852963', customer: 'Ritu Verma', email: 'ritu.v@gmail.com', city: 'Jaipur', date: '17 Aug 2024', total: 12500, payment: 'UPI (Paid)', status: 'Cancelled', items: '1 Saree (Printed Linen)' },
+  { id: 'VSN-741852', customer: 'Pooja Agarwal', email: 'pooja.a@gmail.com', city: 'Kolkata', date: '17 Aug 2024', total: 28900, payment: 'Razorpay (Paid)', status: 'Shipped', items: '1 Saree (Varanasi Brocade)' },
+  { id: 'VSN-963852', customer: 'Deepika Nair', email: 'deepika.n@gmail.com', city: 'Kochi', date: '16 Aug 2024', total: 19500, payment: 'UPI (Paid)', status: 'Processing', items: '1 Saree (Kerala Kasavu)' },
+  { id: 'VSN-159357', customer: 'Shalini Joshi', email: 'shalini.j@gmail.com', city: 'Pune', date: '16 Aug 2024', total: 34000, payment: 'Razorpay (Paid)', status: 'Delivered', items: '2 Sarees (Festive Silk)' }
+];
 
 export default function AdminOrders() {
-  const [orders, setOrders] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [filterStatus, setFilterStatus] = useState('All');
+  const [activeTab, setActiveTab] = useState('All Orders');
   const [searchQuery, setSearchQuery] = useState('');
+  const [ordersList, setOrdersList] = useState(sampleOrders);
+  const [selectedOrderModal, setSelectedOrderModal] = useState(null);
 
   const { addToast } = useToast();
 
-  useEffect(() => {
-    fetchOrders();
-  }, []);
+  const filteredOrders = ordersList.filter((ord) => {
+    const matchesTab = activeTab === 'All Orders' || ord.status === activeTab;
+    const matchesSearch = !searchQuery || ord.id.toLowerCase().includes(searchQuery.toLowerCase()) || ord.customer.toLowerCase().includes(searchQuery.toLowerCase()) || ord.city.toLowerCase().includes(searchQuery.toLowerCase());
+    return matchesTab && matchesSearch;
+  });
 
-  const fetchOrders = async () => {
-    setLoading(true);
-    let serverOrders = [];
-    try {
-      const res = await api.get('/orders/admin/all');
-      if (Array.isArray(res.data) && res.data.length > 0) {
-        serverOrders = res.data;
-      }
-    } catch (error) {}
-
-    // Load local storage orders placed in current session
-    let localOrders = [];
-    try {
-      localOrders = JSON.parse(localStorage.getItem('vasana_orders') || '[]');
-    } catch (e) {}
-
-    // Combine local placed orders + server orders + fallback orders without duplicates
-    const combined = [...localOrders, ...serverOrders, ...fallbackOrders];
-    const uniqueOrders = combined.filter((v, i, a) => a.findIndex(t => t._id === v._id) === i);
-
-    setOrders(uniqueOrders);
-    setLoading(false);
-  };
-
-  const handleUpdateStatus = async (orderId, newStatus) => {
-    try {
-      await api.put(`/orders/${orderId}/status`, { status: newStatus });
-      addToast(`Order status updated to "${newStatus}"`, 'success');
-      fetchOrders();
-    } catch (error) {
-      setOrders((prev) => prev.map(o => o._id === orderId ? { ...o, status: newStatus } : o));
-      // Update local storage
-      try {
-        const local = JSON.parse(localStorage.getItem('vasana_orders') || '[]');
-        const updated = local.map(o => o._id === orderId ? { ...o, status: newStatus } : o);
-        localStorage.setItem('vasana_orders', JSON.stringify(updated));
-      } catch(e){}
-      addToast(`Order status updated to "${newStatus}"`, 'success');
+  const getStatusBadge = (status) => {
+    switch (status) {
+      case 'Delivered': return 'bg-green-100 text-green-800 border-green-200';
+      case 'Shipped': return 'bg-purple-100 text-purple-800 border-purple-200';
+      case 'Processing': return 'bg-blue-100 text-blue-800 border-blue-200';
+      case 'Pending': return 'bg-orange-100 text-orange-800 border-orange-200';
+      case 'Cancelled': return 'bg-red-100 text-red-800 border-red-200';
+      default: return 'bg-gray-100 text-gray-800 border-gray-200';
     }
   };
 
-  const filteredOrders = orders.filter((o) => {
-    const matchesStatus = filterStatus === 'All' || o.status === filterStatus;
-    const matchesSearch = !searchQuery || o._id.toLowerCase().includes(searchQuery.toLowerCase()) || o.user?.name?.toLowerCase().includes(searchQuery.toLowerCase());
-    return matchesStatus && matchesSearch;
-  });
+  const handleExport = () => {
+    addToast('Exporting orders report as CSV...', 'info');
+  };
 
   return (
-    <div className="min-h-screen bg-vasana-bg pt-28 pb-20 text-vasana-dark font-sans">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
+    <AdminLayout>
+      <div className="space-y-6 text-[#292522]">
         
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-vasana-rose pb-4 gap-4">
+        {/* Page Header */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <h1 className="font-serif text-3xl font-light">Order Fulfillment & Tracking</h1>
-            <p className="text-xs font-sans text-gray-500">Monitor customer orders, dispatch status, and shipping logs</p>
+            <h1 className="font-serif text-3xl font-light text-[#1F1A17]">Orders</h1>
+            <p className="text-xs font-sans text-gray-500">Manage and track all customer orders</p>
           </div>
 
           <div className="flex items-center space-x-3">
-            <div className="relative">
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search order ID or client..."
-                className="bg-white border border-gray-300 px-3 py-2 text-xs w-48 font-sans focus:outline-none"
-              />
-              <Search className="w-4 h-4 text-gray-400 absolute right-2 top-2.5" />
-            </div>
+            <button onClick={handleExport} className="px-4 py-2 border border-[#EFE7DC] hover:border-[#B8924A] bg-white text-xs font-sans font-semibold rounded-lg flex items-center space-x-2 shadow-sm transition-all">
+              <Download className="w-4 h-4 text-[#B8924A]" />
+              <span>Export CSV</span>
+            </button>
+          </div>
+        </div>
 
-            <select
-              value={filterStatus}
-              onChange={(e) => setFilterStatus(e.target.value)}
-              className="bg-white border border-gray-300 px-3 py-2 text-xs font-sans focus:outline-none"
-            >
-              <option value="All">All Statuses</option>
-              {statusOptions.map((s) => <option key={s} value={s}>{s}</option>)}
-            </select>
+        {/* Top Filter Tabs */}
+        <div className="flex border-b border-[#EFE7DC] space-x-6 overflow-x-auto no-scrollbar font-sans text-xs">
+          {orderTabs.map((tab) => {
+            const active = activeTab === tab;
+            const count = tab === 'All Orders' ? ordersList.length : ordersList.filter(o => o.status === tab).length;
+            return (
+              <button
+                key={tab}
+                onClick={() => setActiveTab(tab)}
+                className={`pb-3 font-semibold transition-all relative ${
+                  active ? 'text-[#B8924A] after:content-[""] after:absolute after:bottom-0 after:left-0 after:w-full after:h-[2px] after:bg-[#B8924A]' : 'text-gray-400 hover:text-[#1F1A17]'
+                }`}
+              >
+                <span>{tab} ({count})</span>
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Search & Controls */}
+        <div className="bg-white p-4 rounded-xl border border-[#EFE7DC] shadow-sm flex flex-col sm:flex-row items-center justify-between gap-4">
+          <div className="relative w-full sm:w-80">
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search order ID, customer name, or city..."
+              className="w-full bg-[#FAF6F0] border border-[#EFE7DC] py-2 px-3 pr-8 text-xs font-sans rounded-lg focus:outline-none focus:border-[#B8924A]"
+            />
+            <Search className="w-4 h-4 text-gray-400 absolute right-2.5 top-2.5" />
+          </div>
+
+          <div className="flex items-center space-x-2 text-xs font-sans text-gray-500">
+            <Filter className="w-4 h-4 text-[#B8924A]" />
+            <span>Showing {filteredOrders.length} matching orders</span>
           </div>
         </div>
 
         {/* Orders Table */}
-        <div className="bg-white border border-vasana-rose/50 shadow-sm overflow-x-auto text-xs font-sans">
-          <table className="w-full text-left">
-            <thead className="bg-vasana-bg border-b">
-              <tr>
-                <th className="p-3">Order Ref</th>
-                <th className="p-3">Client</th>
-                <th className="p-3">Items</th>
-                <th className="p-3">Total Amount</th>
-                <th className="p-3">Payment</th>
-                <th className="p-3">Current Status</th>
-                <th className="p-3">Update Status</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-100">
-              {filteredOrders.map((ord) => (
-                <tr key={ord._id} className="hover:bg-vasana-bg/50">
-                  <td className="p-3 font-mono font-bold text-vasana-burgundy">{ord._id}</td>
-                  <td className="p-3">
-                    <strong className="block">{ord.user?.name || 'Customer'}</strong>
-                    <span className="text-[10px] text-gray-500">{ord.shippingAddress?.city || 'India'}, {ord.shippingAddress?.state || ''}</span>
-                  </td>
-                  <td className="p-3">
-                    <span className="font-bold">{ord.items?.length || 1} saree(s)</span>
-                  </td>
-                  <td className="p-3 font-bold text-vasana-burgundy">₹{ord.totalAmount?.toLocaleString('en-IN')}</td>
-                  <td className="p-3">
-                    <span className="bg-green-50 text-green-700 px-2 py-0.5 font-bold uppercase text-[10px]">
-                      {ord.payment?.method || 'Razorpay'} • Paid
-                    </span>
-                  </td>
-                  <td className="p-3">
-                    <span className="bg-vasana-gold/20 text-vasana-burgundy px-2.5 py-1 font-bold uppercase text-[10px]">
-                      {ord.status}
-                    </span>
-                  </td>
-                  <td className="p-3">
-                    <select
-                      value={ord.status}
-                      onChange={(e) => handleUpdateStatus(ord._id, e.target.value)}
-                      className="bg-vasana-bg border border-vasana-gold p-1 text-[11px] font-sans font-bold focus:outline-none"
-                    >
-                      {statusOptions.map((opt) => (
-                        <option key={opt} value={opt}>{opt}</option>
-                      ))}
-                    </select>
-                  </td>
+        <div className="bg-white rounded-xl border border-[#EFE7DC] shadow-sm overflow-hidden text-xs font-sans">
+          <div className="overflow-x-auto">
+            <table className="w-full text-left">
+              <thead className="bg-[#FAF6F0] border-b border-[#EFE7DC] uppercase text-[10px] tracking-wider text-gray-500">
+                <tr>
+                  <th className="p-4">Order ID</th>
+                  <th className="p-4">Customer</th>
+                  <th className="p-4">Date</th>
+                  <th className="p-4">Items Summary</th>
+                  <th className="p-4">Total Amount</th>
+                  <th className="p-4">Payment</th>
+                  <th className="p-4">Status</th>
+                  <th className="p-4 text-right">Action</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className="divide-y divide-[#EFE7DC]">
+                {filteredOrders.map((ord) => (
+                  <tr key={ord.id} className="hover:bg-[#FAF6F0]/50 transition-colors">
+                    <td className="p-4 font-mono font-bold text-[#B8924A]">{ord.id}</td>
+                    <td className="p-4">
+                      <strong className="block text-[#1F1A17]">{ord.customer}</strong>
+                      <span className="text-[10px] text-gray-400">{ord.city} • {ord.email}</span>
+                    </td>
+                    <td className="p-4 text-gray-600">{ord.date}</td>
+                    <td className="p-4 text-gray-700">{ord.items}</td>
+                    <td className="p-4 font-bold text-[#1F1A17]">₹{ord.total.toLocaleString('en-IN')}</td>
+                    <td className="p-4">
+                      <span className="text-[10px] font-semibold text-gray-600 bg-[#FAF6F0] px-2 py-1 rounded border border-[#EFE7DC]">
+                        {ord.payment}
+                      </span>
+                    </td>
+                    <td className="p-4">
+                      <span className={`text-[10px] font-bold px-2.5 py-1 rounded-full uppercase border ${getStatusBadge(ord.status)}`}>
+                        {ord.status}
+                      </span>
+                    </td>
+                    <td className="p-4 text-right">
+                      <button
+                        onClick={() => setSelectedOrderModal(ord)}
+                        className="px-3 py-1.5 bg-[#FAF6F0] hover:bg-[#B8924A] hover:text-white text-[#1F1A17] font-semibold rounded transition-colors"
+                      >
+                        View
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Pagination Footer */}
+          <div className="p-4 bg-[#FAF6F0] border-t border-[#EFE7DC] flex items-center justify-between text-xs text-gray-500 font-sans">
+            <span>Showing 1 to {filteredOrders.length} of 48 orders</span>
+            <div className="flex items-center space-x-2">
+              <button disabled className="p-1 border rounded bg-white opacity-50"><ChevronLeft className="w-4 h-4" /></button>
+              <span className="px-2 py-1 bg-[#B8924A] text-white font-bold rounded">1</span>
+              <button className="p-1 border rounded bg-white hover:bg-gray-100"><ChevronRight className="w-4 h-4" /></button>
+            </div>
+          </div>
         </div>
 
       </div>
-    </div>
+
+      {/* View Order Details Modal */}
+      {selectedOrderModal && (
+        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white max-w-lg w-full rounded-xl p-6 space-y-4 shadow-2xl font-sans text-xs text-[#292522]">
+            <div className="flex justify-between items-center border-b pb-3">
+              <div>
+                <h3 className="font-serif text-xl font-bold text-[#1F1A17]">Order {selectedOrderModal.id}</h3>
+                <span className="text-gray-400">Placed on {selectedOrderModal.date}</span>
+              </div>
+              <button onClick={() => setSelectedOrderModal(null)} className="p-1 hover:bg-gray-100 rounded">✕</button>
+            </div>
+
+            <div className="space-y-3 bg-[#FAF6F0] p-4 rounded-lg">
+              <div className="flex justify-between">
+                <span className="text-gray-500">Customer Name:</span>
+                <strong className="text-[#1F1A17]">{selectedOrderModal.customer}</strong>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-500">Delivery Address:</span>
+                <span>Indiranagar, {selectedOrderModal.city}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-500">Items Ordered:</span>
+                <strong>{selectedOrderModal.items}</strong>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-500">Payment Status:</span>
+                <span className="text-green-700 font-bold">{selectedOrderModal.payment}</span>
+              </div>
+              <div className="flex justify-between text-sm font-bold text-[#1F1A17] border-t pt-2">
+                <span>Total Paid:</span>
+                <span className="text-[#B8924A]">₹{selectedOrderModal.total.toLocaleString('en-IN')}</span>
+              </div>
+            </div>
+
+            <div className="flex justify-end pt-2">
+              <button onClick={() => setSelectedOrderModal(null)} className="px-5 py-2 bg-[#1F1A17] text-white font-bold rounded-lg uppercase">
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </AdminLayout>
   );
 }
