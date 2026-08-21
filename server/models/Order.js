@@ -1,15 +1,16 @@
 import mongoose from 'mongoose';
 
 const orderItemSchema = new mongoose.Schema({
-  product: { type: mongoose.Schema.Types.ObjectId, ref: 'Product', required: true },
+  product: { type: mongoose.Schema.Types.ObjectId, ref: 'Product' },
   name: { type: String, required: true },
-  image: { type: String, required: true },
+  image: { type: String },
   price: { type: Number, required: true },
-  quantity: { type: Number, required: true, min: 1 }
+  quantity: { type: Number, required: true, min: 1 },
+  blouseOption: { type: String, default: 'Unstitched Standard' }
 });
 
 const orderSchema = new mongoose.Schema({
-  user: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+  user: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
   items: [orderItemSchema],
   shippingAddress: {
     fullName: { type: String, required: true },
@@ -20,23 +21,31 @@ const orderSchema = new mongoose.Schema({
     pincode: { type: String, required: true },
     country: { type: String, default: 'India' }
   },
-  payment: {
-    method: { type: String, enum: ['Razorpay', 'UPI', 'Cards', 'NetBanking', 'COD'], default: 'Razorpay' },
-    status: { type: String, enum: ['Pending', 'Completed', 'Failed'], default: 'Completed' },
-    transactionId: { type: String, default: '' }
+  paymentMethod: { type: String, default: 'Razorpay' },
+  paymentStatus: { 
+    type: String, 
+    enum: ['pending', 'paid', 'payment_failed'], 
+    default: 'pending' 
   },
+  // Razorpay Specific Fields
+  razorpayOrderId: { type: String, default: '' },
+  razorpayPaymentId: { type: String, default: '' },
+  razorpaySignature: { type: String, default: '' },
+
+  // Server-Calculated Pricing (never trust frontend prices)
   subtotal: { type: Number, required: true },
   discount: { type: Number, default: 0 },
   shippingFee: { type: Number, default: 0 },
   tax: { type: Number, default: 0 },
   totalAmount: { type: Number, required: true },
+  amountInPaise: { type: Number, required: true },
+  
   status: { 
     type: String, 
-    enum: ['Pending', 'Confirmed', 'Processing', 'Shipped', 'Out for Delivery', 'Delivered', 'Cancelled', 'Returned'], 
-    default: 'Confirmed' 
+    enum: ['pending', 'paid', 'payment_failed', 'Confirmed', 'Processing', 'Shipped', 'Delivered', 'Cancelled'], 
+    default: 'pending' 
   },
-  trackingCode: { type: String, default: '' },
-  estimatedDelivery: { type: Date }
+  trackingCode: { type: String, default: '' }
 }, { timestamps: true });
 
 export default mongoose.model('Order', orderSchema);

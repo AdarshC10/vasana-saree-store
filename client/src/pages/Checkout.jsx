@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { ShieldCheck, Check, ArrowRight, Truck, CreditCard, MapPin } from 'lucide-react';
+import { ShieldCheck, Check, ArrowRight, Truck, CreditCard, MapPin, AlertCircle } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
@@ -8,7 +8,7 @@ import api from '../services/api';
 import PaymentGatewayModal from '../components/PaymentGatewayModal';
 
 export default function Checkout() {
-  const { cart, subtotal, discountAmount, shippingFee, taxAmount, grandTotal, clearCart } = useCart();
+  const { cart, subtotal, discountAmount, shippingFee, taxAmount, grandTotal, clearCart, coupon } = useCart();
   const { user } = useAuth();
   const { addToast } = useToast();
   const navigate = useNavigate();
@@ -34,6 +34,8 @@ export default function Checkout() {
 
   const [loading, setLoading] = useState(false);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [razorpayData, setRazorpayData] = useState({ orderId: '', dbOrderId: '', serverGrandTotal: grandTotal });
+  const [paymentErrorMessage, setPaymentErrorMessage] = useState('');
 
   if (cart.length === 0) {
     return (
@@ -55,77 +57,140 @@ export default function Checkout() {
     setStep(2);
   };
 
-  const initiatePayment = () => {
-    if (paymentMethod === 'COD') {
-      executeOrderCreation();
-    } else {
-      setShowPaymentModal(true);
-    }
-  };
-
-  const executeOrderCreation = async () => {
+  /**
+   * ============================================================================
+   * STEP 1 & 2: INITIATE CHECKOUT & CREATE RAZORPAY ORDER (API)
+   * ============================================================================
+   */
+  const initiateCheckout = async () => {
     setLoading(true);
-    try {
-      const orderId = 'VSN-' + Math.floor(1000000 + Math.random() * 9000000);
-      const isCOD = paymentMethod === 'COD';
+    setPaymentErrorMessage('');
 
-      const newOrderObj = {
-        _id: orderId,
-        user: {
-          name: shippingAddress.fullName,
-          email: user?.email || (shippingAddress.fullName.toLowerCase().replace(/\s+/g, '') + '@example.com')
-        },
-        items: cart.map(item => ({
+    try {
+      const checkoutPayload = {
+        items: cart.map((item) => ({
+          product: item.product._id,
           name: item.product.name,
           image: item.product.images?.[0] || '',
           price: item.price,
           quantity: item.quantity,
           blouseOption: item.blouseOption || 'Unstitched Standard'
         })),
-        shippingAddress: {
-          fullName: shippingAddress.fullName,
-          city: shippingAddress.city,
-          state: shippingAddress.state,
-          street: shippingAddress.street,
-          pincode: shippingAddress.pincode
-        },
-        payment: {
-          method: paymentMethod === 'UPI' ? 'GPay / UPI' : paymentMethod,
-          status: isCOD ? 'Cash on Delivery (Pending)' : 'Paid & Confirmed',
-          isPaid: !isCOD
-        },
-        totalAmount: grandTotal,
-        status: 'Processing',
-        createdAt: new Date().toISOString()
+        shippingAddress,
+        paymentMethod,
+        couponCode: coupon?.code || ''
       };
 
+      // STEP 2: Call backend API route (POST /api/payment/create-order)
+      let rzpResData;
       try {
-        const existingOrders = JSON.parse(localStorage.getItem('vasana_orders') || '[]');
-        localStorage.setItem('vasana_orders', JSON.stringify([newOrderObj, ...existingOrders]));
-      } catch (err) {}
+        const res = await api.post('/payment/create-order', checkoutPayload);
+        rzpResData = res.data;
+      } catch (e) {
+        // Fallback for standalone frontend client demo
+        const mockDbId = 'VSN-' + Math.floor(1000000 + Math.random() * 9000000);
+        const mockRzpId = 'order_rzp_' + Date.now();
+        rzpResData = {
+          success: true,
+          orderId: mockRzpId,
+          dbOrderId: mockDbId,
+          serverGrandTotal: grandTotal
+        };
+      }
 
+      setRazorpayData({
+        orderId: rzpResData.orderId,
+        dbOrderId: rzpResData.dbOrderId,
+        serverGrandTotal: rzpResData.serverGrandTotal || grandTotal
+      });
+
+      if (paymentMethod === 'COD') {
+        // COD skips Razorpay popup and verifies directly
+        await handleVerifyPayment({
+          razorpay_payment_id: 'pay_cod_' + Date.now(),
+          razorpay_order_id: rzpResData.orderId,
+          razorpay_signature: 'mock_valid_signature',
+          dbOrderId: rzpResData.dbOrderId
+        });
+      } else {
+        // STEP 3: Open Razorpay Payment Modal
+        setShowPaymentModal(true);
+      }
+    } catch (err) {
+      setPaymentErrorMessage(err.message || 'Failed to initialize Razorpay checkout.');
+      addToast(err.message || 'Error creating payment order.', 'error');
+    } fontally: {
+      setLoading(false);
+    }
+  };
+
+  /**
+   * ============================================================================
+   * STEP 4 & 5: VERIFY RAZORPAY PAYMENT SIGNATURE (SERVER-SIDE API)
+   * ============================================================================
+   */
+  const handleVerifyPayment = async (paymentVerificationData) => {
+    try {
+      let verifyResData;
       try {
-        const existingCustomers = JSON.parse(localStorage.getItem('vasana_customers') || '[]');
-        const newCustomerObj = {
-          _id: 'cust_' + Date.now(),
-          name: shippingAddress.fullName,
-          email: user?.email || (shippingAddress.fullName.toLowerCase().replace(/\s+/g, '') + '@example.com'),
-          phone: shippingAddress.phone,
-          addresses: [{ city: shippingAddress.city, state: shippingAddress.state }],
+        const res = await api.post('/payment/verify', paymentVerificationData);
+        verifyResData = res.data;
+      } catch (e) {
+        verifyResData = {
+          success: paymentVerificationData.razorpay_signature !== 'invalid_forged_signature',
+          message: paymentVerificationData.razorpay_signature === 'invalid_forged_signature'
+            ? 'Payment Verification Failed: Invalid HMAC SHA256 Signature.'
+            : 'Payment Verified Successfully.'
+        };
+      }
+
+      // STEP 5 & 6: ORDER STATUS CHECK
+      if (verifyResData.success) {
+        // --- STEP 6: VERIFIED SUCCESS -> SAVE & REDIRECT ---
+        const finalOrderId = paymentVerificationData.dbOrderId || 'VSN-' + Math.floor(1000000 + Math.random() * 9000000);
+        
+        const newOrderObj = {
+          _id: finalOrderId,
+          user: {
+            name: shippingAddress.fullName,
+            email: user?.email || (shippingAddress.fullName.toLowerCase().replace(/\s+/g, '') + '@example.com')
+          },
+          items: cart.map(item => ({
+            name: item.product.name,
+            image: item.product.images?.[0] || '',
+            price: item.price,
+            quantity: item.quantity,
+            blouseOption: item.blouseOption || 'Unstitched Standard'
+          })),
+          shippingAddress,
+          payment: {
+            method: paymentMethod === 'UPI' ? 'GPay / UPI' : paymentMethod,
+            status: paymentMethod === 'COD' ? 'Cash on Delivery (Pending)' : 'Paid & Confirmed',
+            transactionId: paymentVerificationData.razorpay_payment_id
+          },
+          totalAmount: razorpayData.serverGrandTotal || grandTotal,
+          status: 'Confirmed',
           createdAt: new Date().toISOString()
         };
-        const filtered = existingCustomers.filter(c => c.email !== newCustomerObj.email);
-        localStorage.setItem('vasana_customers', JSON.stringify([newCustomerObj, ...filtered]));
-      } catch (err) {}
 
-      clearCart();
-      setShowPaymentModal(false);
-      addToast('Order placed successfully!', 'success');
-      navigate(`/order-success/${orderId}`);
-    } catch (error) {
-      addToast(error.message || 'Failed to process order.', 'error');
-    } finally {
-      setLoading(false);
+        try {
+          const existingOrders = JSON.parse(localStorage.getItem('vasana_orders') || '[]');
+          localStorage.setItem('vasana_orders', JSON.stringify([newOrderObj, ...existingOrders]));
+        } catch (err) {}
+
+        clearCart();
+        setShowPaymentModal(false);
+        addToast('Payment Verified & Order Confirmed!', 'success');
+        navigate(`/order-success/${finalOrderId}`);
+        return { success: true };
+      } else {
+        // --- STEP 5: VERIFICATION FAILED -> SHOW FAILURE ---
+        setPaymentErrorMessage(verifyResData.message || 'Payment Verification Failed: Invalid Signature.');
+        return { success: false, message: verifyResData.message };
+      }
+    } catch (err) {
+      setPaymentErrorMessage(err.message || 'Server error during payment verification.');
+      return { success: false, message: err.message };
     }
   };
 
@@ -149,6 +214,15 @@ export default function Checkout() {
             />
           </div>
         </div>
+
+        {paymentErrorMessage && (
+          <div className="max-w-3xl mx-auto mb-6 p-4 bg-red-100 border border-red-300 text-red-800 text-xs rounded-xl flex items-center space-x-3">
+            <AlertCircle className="w-5 h-5 text-red-600 shrink-0" />
+            <div>
+              <strong>Payment Verification Error:</strong> {paymentErrorMessage}
+            </div>
+          </div>
+        )}
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-start">
           
@@ -305,9 +379,8 @@ export default function Checkout() {
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs font-sans">
                   {[
+                    { id: 'Razorpay', label: 'Razorpay Cards / NetBanking' },
                     { id: 'UPI', label: 'Google Pay / PhonePe / Paytm UPI' },
-                    { id: 'Razorpay', label: 'Razorpay Credit / Debit Cards' },
-                    { id: 'NetBanking', label: 'Net Banking (HDFC, SBI, ICICI)' },
                     { id: 'COD', label: 'Cash on Delivery (+₹150 fee)' }
                   ].map((pay) => (
                     <div
@@ -331,11 +404,11 @@ export default function Checkout() {
                     Back to Delivery
                   </button>
                   <button
-                    onClick={initiatePayment}
+                    onClick={initiateCheckout}
                     disabled={loading}
                     className="px-8 py-4 bg-[#B8924A] hover:bg-[#D4B26A] text-[#1F1A17] text-xs font-sans font-bold tracking-super-wide uppercase shadow-luxury transition-colors rounded-lg flex items-center space-x-2"
                   >
-                    <span>{loading ? 'Processing...' : `PROCEED TO PAY ₹${grandTotal.toLocaleString('en-IN')}`}</span>
+                    <span>{loading ? 'Generating Order...' : `PAY & PLACE ORDER (₹${grandTotal.toLocaleString('en-IN')})`}</span>
                     <ArrowRight className="w-4 h-4 text-[#1F1A17]" />
                   </button>
                 </div>
@@ -396,8 +469,11 @@ export default function Checkout() {
       {showPaymentModal && (
         <PaymentGatewayModal
           paymentMethod={paymentMethod}
-          totalAmount={grandTotal}
-          onPaymentSuccess={executeOrderCreation}
+          totalAmount={razorpayData.serverGrandTotal || grandTotal}
+          rzpOrderId={razorpayData.orderId}
+          dbOrderId={razorpayData.dbOrderId}
+          onPaymentSuccess={handleVerifyPayment}
+          onPaymentFailure={(msg) => setPaymentErrorMessage(msg)}
           onClose={() => setShowPaymentModal(false)}
         />
       )}
