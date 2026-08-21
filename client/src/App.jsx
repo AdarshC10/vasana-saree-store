@@ -9,7 +9,6 @@ import { ToastProvider } from './context/ToastContext';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
 import CartDrawer from './components/CartDrawer';
-import VasanaAIChatbot from './components/VasanaAIChatbot';
 
 // Pages
 import Home from './pages/Home';
@@ -62,7 +61,6 @@ export default function App() {
               <div className="flex flex-col min-h-screen">
                 <Navbar />
                 <CartDrawer />
-                <VasanaAIChatbot />
                 
                 <main className="flex-grow">
                   <Routes>
