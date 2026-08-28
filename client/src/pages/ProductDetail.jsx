@@ -11,6 +11,7 @@ import { useToast } from '../context/ToastContext';
 import ProductGallery from '../components/pdp/ProductGallery';
 import ProductAccordion from '../components/pdp/ProductAccordion';
 import ProductStory from '../components/pdp/ProductStory';
+import CustomerReviewsSection from '../components/pdp/CustomerReviewsSection';
 import RelatedProducts from '../components/pdp/RelatedProducts';
 import RecentlyViewed from '../components/pdp/RecentlyViewed';
 import ProductSkeleton from '../components/pdp/ProductSkeleton';
@@ -322,6 +323,9 @@ export default function ProductDetail() {
 
         {/* Product Craft Story Section */}
         <ProductStory product={product} />
+
+        {/* Customer Reviews & Ratings Section */}
+        <CustomerReviewsSection product={product} />
 
         {/* You May Also Like */}
         <RelatedProducts currentProduct={product} />

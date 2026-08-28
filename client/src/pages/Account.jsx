@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { User, Package, MapPin, Heart, LogOut, ShieldCheck, Plus, Trash2, CheckCircle2, Truck } from 'lucide-react';
+import { User, Package, MapPin, Heart, LogOut, ShieldCheck, Plus, Trash2, CheckCircle2, Truck, MessageSquare, Star } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import api from '../services/api';
@@ -169,6 +169,16 @@ export default function Account() {
             >
               <User className="w-4 h-4 text-[#B4975A]" />
               <span>PROFILE DETAILS</span>
+            </button>
+
+            <button
+              onClick={() => setActiveTab('reviews')}
+              className={`w-full text-left p-3 flex items-center space-x-3 transition-all ${
+                activeTab === 'reviews' ? 'bg-[#241C18] text-white' : 'text-[#241C18] hover:bg-[#EFE7DC]/40'
+              }`}
+            >
+              <MessageSquare className="w-4 h-4 text-[#B4975A]" />
+              <span>MY REVIEWS</span>
             </button>
 
             <Link
@@ -364,6 +374,37 @@ export default function Account() {
                   SAVE CHANGES
                 </button>
               </form>
+            )}
+
+            {/* My Reviews Tab */}
+            {activeTab === 'reviews' && (
+              <div className="space-y-6 font-sans">
+                <div className="flex items-center justify-between border-b border-[#EFE7DC] pb-3">
+                  <h3 className="font-serif text-2xl text-[#241C18]">
+                    My Posted Reviews & Feedback
+                  </h3>
+                  <Link
+                    to="/shop"
+                    className="px-4 py-2 bg-[#241C18] text-white text-xs font-bold uppercase tracking-wider hover:bg-[#322722]"
+                  >
+                    REVIEW A SAREE
+                  </Link>
+                </div>
+
+                <div className="bg-[#FAF6F0] p-6 border border-[#EFE7DC] rounded-xl text-center space-y-3">
+                  <MessageSquare className="w-10 h-10 text-[#B4975A] mx-auto" />
+                  <h4 className="font-serif text-lg text-[#241C18]">Your Reviews & Ratings</h4>
+                  <p className="text-xs text-gray-500 max-w-md mx-auto">
+                    You can post a review on any saree product page. All reviews you post will automatically display verified purchase badges.
+                  </p>
+                  <Link
+                    to="/shop"
+                    className="inline-block px-6 py-2.5 bg-[#B4975A] text-[#241C18] text-xs font-bold uppercase tracking-widest hover:bg-[#C5AC73]"
+                  >
+                    EXPLORE CATALOGUE TO REVIEW →
+                  </Link>
+                </div>
+              </div>
             )}
 
           </div>
